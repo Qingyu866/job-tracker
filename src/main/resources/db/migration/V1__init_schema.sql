@@ -4,7 +4,6 @@
 -- Author: Job Tracker Team
 -- Description: 求职追踪系统数据库初始化脚本
 -- ==========================================
-
 -- 设置字符集
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -80,7 +79,7 @@ CREATE TABLE `interview_records` (
   `feedback` TEXT DEFAULT NULL COMMENT '面试反馈',
   `technical_questions` TEXT DEFAULT NULL COMMENT '技术问题记录',
   `notes` TEXT DEFAULT NULL COMMENT '备注信息',
-  `follow_up_required` BOOLEAN DEFAULT FALSE COMMENT '是否需要跟进',
+  `follow_up_required` TINYINT(1) DEFAULT 0 COMMENT '是否需要跟进（0:否, 1:是）',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标记（0:未删除, 1:已删除）',
