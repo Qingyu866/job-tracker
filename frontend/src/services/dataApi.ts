@@ -98,6 +98,74 @@ export const dataApi = {
     return response.data.data;
   },
 
+  /**
+   * 标记面试为已完成
+   */
+  completeInterview: async (
+    id: number,
+    rating?: number,
+    feedback?: string
+  ): Promise<boolean> => {
+    const response = await apiClient.post<any>(`/interviews/${id}/complete`, {
+      rating,
+      feedback,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * 更新面试反馈
+   */
+  updateFeedback: async (id: number, feedback: string): Promise<boolean> => {
+    const response = await apiClient.put<any>(`/interviews/${id}/feedback`, {
+      feedback,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * 更新技术问题记录
+   */
+  updateTechnicalQuestions: async (
+    id: number,
+    technicalQuestions: string
+  ): Promise<boolean> => {
+    const response = await apiClient.put<any>(
+      `/interviews/${id}/technical-questions`,
+      { technicalQuestions }
+    );
+    return response.data.data;
+  },
+
+  /**
+   * 取消面试
+   */
+  cancelInterview: async (id: number): Promise<boolean> => {
+    const response = await apiClient.put<any>(`/interviews/${id}/cancel`);
+    return response.data.data;
+  },
+
+  /**
+   * 标记面试为未参加
+   */
+  markAsNoShow: async (id: number): Promise<boolean> => {
+    const response = await apiClient.put<any>(`/interviews/${id}/no-show`);
+    return response.data.data;
+  },
+
+  /**
+   * 设置跟进标记
+   */
+  setFollowUpRequired: async (
+    id: number,
+    followUpRequired: boolean
+  ): Promise<boolean> => {
+    const response = await apiClient.put<any>(`/interviews/${id}/follow-up`, {
+      followUpRequired,
+    });
+    return response.data.data;
+  },
+
   // ========== 统计相关 ==========
 
   /**

@@ -3,6 +3,7 @@ package com.jobtracker.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jobtracker.entity.InterviewRecord;
 import com.jobtracker.mapper.InterviewMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.List;
  * - 面试状态管理
  * - 面试查询和筛选
  * - 面试跟进管理
+ * - 自动日志记录
  * </p>
  *
  * @author Job Tracker Team
@@ -26,7 +28,10 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class InterviewService extends ServiceImpl<InterviewMapper, InterviewRecord> {
+
+    private final ApplicationLogService applicationLogService;
 
     /**
      * 根据申请ID查询所有面试记录
@@ -124,7 +129,16 @@ public class InterviewService extends ServiceImpl<InterviewMapper, InterviewReco
 
         if (result) {
             log.info("面试标记为已完成：id={}", id);
-            // TODO: 记录日志到 application_logs 表
+            // 记录面试完成日志
+            applicationLogService.createInterviewCompletedLog(
+                record.getApplicationId(),
+                record.getInterviewType(),
+                rating
+            );
+            // 如果有反馈，记录反馈日志
+            if (feedback != null && !feedback.isEmpty()) {
+                applicationLogService.createFeedbackLog(record.getApplicationId(), feedback);
+            }
         }
 
         return result;
@@ -151,7 +165,11 @@ public class InterviewService extends ServiceImpl<InterviewMapper, InterviewReco
 
         if (result) {
             log.info("面试已取消：id={}", id);
-            // TODO: 记录日志到 application_logs 表
+            // 记录面试取消日志
+            applicationLogService.createInterviewCancelledLog(
+                record.getApplicationId(),
+                record.getInterviewType()
+            );
         }
 
         return result;
@@ -178,7 +196,11 @@ public class InterviewService extends ServiceImpl<InterviewMapper, InterviewReco
 
         if (result) {
             log.info("面试标记为未参加：id={}", id);
-            // TODO: 记录日志到 application_logs 表
+            // 记录面试未参加日志
+            applicationLogService.createInterviewNoShowLog(
+                record.getApplicationId(),
+                record.getInterviewType()
+            );
         }
 
         return result;

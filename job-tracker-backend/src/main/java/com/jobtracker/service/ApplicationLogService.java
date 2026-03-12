@@ -193,4 +193,116 @@ public class ApplicationLogService extends ServiceImpl<ApplicationLogMapper, App
         save(log);
         return log;
     }
+
+    /**
+     * 创建申请创建日志
+     *
+     * @param applicationId 申请ID
+     * @param jobTitle 职位名称
+     * @param companyName 公司名称
+     * @return 保存的日志实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationLog createApplicationCreatedLog(Long applicationId, String jobTitle, String companyName) {
+        log.info("创建申请创建日志：applicationId={}, jobTitle={}, company={}", applicationId, jobTitle, companyName);
+
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(applicationId);
+        log.setLogType("APPLICATION_CREATED");
+        log.setLogTitle("创建申请");
+        log.setLogContent(String.format("创建了新申请：%s - %s", companyName, jobTitle));
+        log.setLoggedBy("USER");
+
+        save(log);
+        return log;
+    }
+
+    /**
+     * 创建申请提交日志
+     *
+     * @param applicationId 申请ID
+     * @param jobTitle 职位名称
+     * @return 保存的日志实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationLog createApplicationSubmittedLog(Long applicationId, String jobTitle) {
+        log.info("创建申请提交日志：applicationId={}, jobTitle={}", applicationId, jobTitle);
+
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(applicationId);
+        log.setLogType("APPLICATION_SUBMITTED");
+        log.setLogTitle("提交申请");
+        log.setLogContent(String.format("已提交申请：%s", jobTitle));
+        log.setLoggedBy("USER");
+
+        save(log);
+        return log;
+    }
+
+    /**
+     * 创建面试完成日志
+     *
+     * @param applicationId 申请ID
+     * @param interviewType 面试类型
+     * @param rating 评分
+     * @return 保存的日志实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationLog createInterviewCompletedLog(Long applicationId, String interviewType, Integer rating) {
+        log.info("创建面试完成日志：applicationId={}, type={}, rating={}", applicationId, interviewType, rating);
+
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(applicationId);
+        log.setLogType("INTERVIEW_COMPLETED");
+        log.setLogTitle("面试完成");
+        log.setLogContent(String.format("已完成 %s 面试，评分：%d", interviewType, rating));
+        log.setLoggedBy("SYSTEM");
+
+        save(log);
+        return log;
+    }
+
+    /**
+     * 创建面试取消日志
+     *
+     * @param applicationId 申请ID
+     * @param interviewType 面试类型
+     * @return 保存的日志实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationLog createInterviewCancelledLog(Long applicationId, String interviewType) {
+        log.info("创建面试取消日志：applicationId={}, type={}", applicationId, interviewType);
+
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(applicationId);
+        log.setLogType("INTERVIEW_CANCELLED");
+        log.setLogTitle("面试已取消");
+        log.setLogContent(String.format("已取消 %s 面试", interviewType));
+        log.setLoggedBy("USER");
+
+        save(log);
+        return log;
+    }
+
+    /**
+     * 创建面试未参加日志
+     *
+     * @param applicationId 申请ID
+     * @param interviewType 面试类型
+     * @return 保存的日志实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationLog createInterviewNoShowLog(Long applicationId, String interviewType) {
+        log.info("创建面试未参加日志：applicationId={}, type={}", applicationId, interviewType);
+
+        ApplicationLog log = new ApplicationLog();
+        log.setApplicationId(applicationId);
+        log.setLogType("INTERVIEW_NO_SHOW");
+        log.setLogTitle("未参加面试");
+        log.setLogContent(String.format("未参加 %s 面试", interviewType));
+        log.setLoggedBy("SYSTEM");
+
+        save(log);
+        return log;
+    }
 }

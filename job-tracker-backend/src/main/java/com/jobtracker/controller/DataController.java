@@ -6,6 +6,7 @@ import com.jobtracker.common.result.Result;
 import com.jobtracker.entity.Company;
 import com.jobtracker.entity.InterviewRecord;
 import com.jobtracker.entity.JobApplication;
+import com.jobtracker.service.ApplicationLogService;
 import com.jobtracker.service.ApplicationService;
 import com.jobtracker.service.CompanyService;
 import com.jobtracker.service.InterviewService;
@@ -36,6 +37,7 @@ public class DataController {
     private final ApplicationService applicationService;
     private final InterviewService interviewService;
     private final CompanyService companyService;
+    private final ApplicationLogService applicationLogService;
 
     // ==================== 求职申请相关接口 ====================
 
@@ -157,6 +159,21 @@ public class DataController {
         try {
             boolean success = applicationService.save(application);
             if (success) {
+                // 获取公司名称用于日志记录
+                String companyName = "未知公司";
+                if (application.getCompanyId() != null) {
+                    Company company = companyService.getById(application.getCompanyId());
+                    if (company != null) {
+                        companyName = company.getName();
+                    }
+                }
+
+                // 记录申请创建日志
+                applicationLogService.createApplicationCreatedLog(
+                    application.getId(),
+                    application.getJobTitle(),
+                    companyName
+                );
                 return Result.success("创建成功", application.getId());
             } else {
                 return Result.error("创建失败");
@@ -229,6 +246,12 @@ public class DataController {
         try {
             boolean success = interviewService.save(interview);
             if (success) {
+                // 记录面试安排日志
+                applicationLogService.createInterviewScheduledLog(
+                    interview.getApplicationId(),
+                    interview.getInterviewType(),
+                    interview.getInterviewDate().toString()
+                );
                 return Result.success("创建成功", interview.getId());
             } else {
                 return Result.error("创建失败");
@@ -236,6 +259,156 @@ public class DataController {
         } catch (Exception e) {
             log.error("创建面试记录失败", e);
             return Result.error("创建失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 标记面试为已完成
+     *
+     * @param id 面试记录ID
+     * @param requestBody 包含评分和反馈的请求体
+     * @return 操作结果
+     */
+    @PostMapping("/interviews/{id}/complete")
+    public Result<Boolean> completeInterview(
+        @PathVariable Long id,
+        @RequestBody java.util.Map<String, Object> requestBody
+    ) {
+        try {
+            Integer rating = requestBody.containsKey("rating") ?
+                ((Number) requestBody.get("rating")).intValue() : null;
+            String feedback = requestBody.containsKey("feedback") ?
+                (String) requestBody.get("feedback") : null;
+
+            boolean success = interviewService.markAsCompleted(id, rating, feedback);
+            if (success) {
+                return Result.success("面试已标记为完成", true);
+            } else {
+                return Result.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("标记面试完成失败：id={}", id, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新面试反馈
+     *
+     * @param id 面试记录ID
+     * @param requestBody 包含反馈内容的请求体
+     * @return 操作结果
+     */
+    @PutMapping("/interviews/{id}/feedback")
+    public Result<Boolean> updateFeedback(
+        @PathVariable Long id,
+        @RequestBody java.util.Map<String, String> requestBody
+    ) {
+        try {
+            String feedback = requestBody.get("feedback");
+            boolean success = interviewService.updateFeedback(id, feedback);
+            if (success) {
+                return Result.success("反馈已更新", true);
+            } else {
+                return Result.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("更新面试反馈失败：id={}", id, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新技术问题记录
+     *
+     * @param id 面试记录ID
+     * @param requestBody 包含技术问题的请求体
+     * @return 操作结果
+     */
+    @PutMapping("/interviews/{id}/technical-questions")
+    public Result<Boolean> updateTechnicalQuestions(
+        @PathVariable Long id,
+        @RequestBody java.util.Map<String, String> requestBody
+    ) {
+        try {
+            String technicalQuestions = requestBody.get("technicalQuestions");
+            boolean success = interviewService.updateTechnicalQuestions(id, technicalQuestions);
+            if (success) {
+                return Result.success("技术问题已更新", true);
+            } else {
+                return Result.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("更新技术问题失败：id={}", id, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 取消面试
+     *
+     * @param id 面试记录ID
+     * @return 操作结果
+     */
+    @PutMapping("/interviews/{id}/cancel")
+    public Result<Boolean> cancelInterview(@PathVariable Long id) {
+        try {
+            boolean success = interviewService.cancelInterview(id);
+            if (success) {
+                return Result.success("面试已取消", true);
+            } else {
+                return Result.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("取消面试失败：id={}", id, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 标记面试为未参加
+     *
+     * @param id 面试记录ID
+     * @return 操作结果
+     */
+    @PutMapping("/interviews/{id}/no-show")
+    public Result<Boolean> markAsNoShow(@PathVariable Long id) {
+        try {
+            boolean success = interviewService.markAsNoShow(id);
+            if (success) {
+                return Result.success("已标记为未参加", true);
+            } else {
+                return Result.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("标记面试未参加失败：id={}", id, e);
+            return Result.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 设置跟进标记
+     *
+     * @param id 面试记录ID
+     * @param requestBody 包含跟进标记的请求体
+     * @return 操作结果
+     */
+    @PutMapping("/interviews/{id}/follow-up")
+    public Result<Boolean> setFollowUpRequired(
+        @PathVariable Long id,
+        @RequestBody java.util.Map<String, Boolean> requestBody
+    ) {
+        try {
+            Boolean followUpRequired = requestBody.get("followUpRequired");
+            boolean success = interviewService.setFollowUpRequired(id, followUpRequired);
+            if (success) {
+                return Result.success("跟进标记已更新", true);
+            } else {
+                return Result.error("操作失败");
+            }
+        } catch (Exception e) {
+            log.error("设置跟进标记失败：id={}", id, e);
+            return Result.error("操作失败：" + e.getMessage());
         }
     }
 

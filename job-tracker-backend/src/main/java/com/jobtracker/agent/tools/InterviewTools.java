@@ -43,7 +43,7 @@ public class InterviewTools {
      * @param durationMinutesInt  面试时长（分钟，可选）
      * @return 操作结果的描述性消息
      */
-    @Tool("创建面试记录。参数：申请ID、面试类型、面试时间、面试官姓名、面试官职位、面试时长")
+    @Tool("创建面试记录。参数：申请ID、面试类型、面试时间（格式：yyyy-MM-dd HH:mm，例如：2026-03-13 09:00）、面试官姓名、面试官职位、面试时长")
     public String createInterview(
             Long applicationId,
             String interviewType,
@@ -72,8 +72,14 @@ public class InterviewTools {
 
             // 解析时间
             try {
+                String dateToParse = interviewDateStr;
+                // 智能判断：如果只传了日期（长度小于等于11），自动补充默认时间 09:00
+                if (interviewDateStr.length() <= 11) {
+                    dateToParse = interviewDateStr + " 09:00";
+                    log.info("检测到只传了日期，自动补充时间为：{}", dateToParse);
+                }
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-                record.setInterviewDate(LocalDateTime.parse(interviewDateStr, formatter));
+                record.setInterviewDate(LocalDateTime.parse(dateToParse, formatter));
             } catch (Exception e) {
                 log.warn("时间解析失败，尝试其他格式：{}", interviewDateStr);
                 try {
@@ -109,15 +115,17 @@ public class InterviewTools {
      * @param ratingInt           评分（可选，1-5分）
      * @param feedback            反馈（可选）
      * @param technicalQuestions 技术问题记录（可选）
+     * @param interviewDateStr    面试时间（可选，格式：yyyy-MM-dd HH:mm）
      * @return 操作结果的描述性消息
      */
-    @Tool("更新面试记录。参数：面试ID、状态、评分、反馈、技术问题")
+    @Tool("更新面试记录。参数：面试ID、状态、评分、反馈、技术问题、面试时间（格式：yyyy-MM-dd HH:mm，例如：2026-03-13 09:00）")
     public String updateInterview(
             Long interviewId,
             String status,
             Integer ratingInt,
             String feedback,
-            String technicalQuestions
+            String technicalQuestions,
+            String interviewDateStr
     ) {
         try {
             log.info("AI 调用更新面试：interviewId={}, status={}", interviewId, status);
@@ -159,6 +167,23 @@ public class InterviewTools {
                 }
                 if (technicalQuestions != null) {
                     record.setTechnicalQuestions(technicalQuestions);
+                }
+                // 解析面试时间（使用系统默认时区，避免时区转换问题）
+                if (interviewDateStr != null && !interviewDateStr.trim().isEmpty()) {
+                    try {
+                        DateTimeFormatter formatter;
+                        String dateToParse = interviewDateStr;
+                        // 智能判断：如果只传了日期（长度小于等于11），自动补充默认时间 09:00
+                        if (interviewDateStr.length() <= 11) {
+                            dateToParse = interviewDateStr + " 09:00";
+                            log.info("检测到只传了日期，自动补充时间为：{}", dateToParse);
+                        }
+                        formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                        record.setInterviewDate(LocalDateTime.parse(dateToParse, formatter));
+                        log.info("更新面试时间：{}", dateToParse);
+                    } catch (Exception e) {
+                        log.warn("时间解析失败，保持原时间：{}", interviewDateStr, e);
+                    }
                 }
                 boolean success = interviewService.updateById(record);
                 return success ? "✅ 更新成功" : "❌ 更新失败";

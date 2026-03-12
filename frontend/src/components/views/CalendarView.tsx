@@ -369,6 +369,10 @@ export function CalendarView() {
       <InterviewDetailModal
         interview={selectedInterview}
         onClose={() => setSelectedInterview(null)}
+        onUpdate={() => {
+          console.log('[CalendarView] 刷新面试数据');
+          fetchInterviews();
+        }}
       />
     </div>
   );

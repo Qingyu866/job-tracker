@@ -3,6 +3,7 @@ import { X, ChevronRight } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+import './ChatPanel.css';
 
 interface ChatPanelProps {
   onClose?: () => void;
@@ -81,11 +82,9 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             ))}
             {isTyping && (
               <div className="flex justify-start mb-4">
-                <div className="bg-paper-100 border border-paper-200 rounded-2xl px-4 py-2">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-paper-400 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-paper-400 rounded-full animate-bounce delay-100" />
-                    <div className="w-2 h-2 bg-paper-400 rounded-full animate-bounce delay-200" />
+                <div className="bg-paper-100 border border-paper-200 rounded-2xl px-4 py-3">
+                  <div className="text-paper-600 font-mono text-sm">
+                    <span className="typing-indicator">AI 正在输入</span>
                   </div>
                 </div>
               </div>

@@ -49,7 +49,7 @@ export interface InterviewRecord {
   interviewerName?: string;
   interviewerTitle?: string;
   durationMinutes?: number;
-  status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  status?: 'SCHEDULED' | 'INTERVIEW' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
   rating?: number;
   feedback?: string;
   technicalQuestions?: string;

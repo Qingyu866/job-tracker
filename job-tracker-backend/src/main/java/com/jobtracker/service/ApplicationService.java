@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jobtracker.constants.ApplicationStatus;
 import com.jobtracker.entity.JobApplication;
 import com.jobtracker.mapper.ApplicationMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.util.List;
  * - 优先级管理
  * - 高级查询（按状态、日期范围、优先级等）
  * - 统计分析
+ * - 自动日志记录
  * </p>
  *
  * @author Job Tracker Team
@@ -30,7 +32,10 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ApplicationService extends ServiceImpl<ApplicationMapper, JobApplication> {
+
+    private final ApplicationLogService applicationLogService;
 
     /**
      * 根据公司ID查询所有申请
@@ -141,7 +146,8 @@ public class ApplicationService extends ServiceImpl<ApplicationMapper, JobApplic
 
         if (result) {
             log.info("申请状态更新成功：id={}, {} -> {}", id, oldStatus, newStatus);
-            // TODO: 记录日志到 application_logs 表
+            // 记录状态变更日志
+            applicationLogService.createStatusChangeLog(id, oldStatus, newStatus);
         }
 
         return result;
@@ -209,7 +215,8 @@ public class ApplicationService extends ServiceImpl<ApplicationMapper, JobApplic
 
         if (result) {
             log.info("申请提交成功：id={}", id);
-            // TODO: 记录日志到 application_logs 表
+            // 记录申请提交日志
+            applicationLogService.createApplicationSubmittedLog(id, application.getJobTitle());
         }
 
         return result;
