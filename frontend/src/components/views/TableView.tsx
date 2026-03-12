@@ -45,8 +45,9 @@ export function TableView() {
   }
 
   return (
-    <div className="p-6">
-      <div className="paper-card rounded-lg overflow-hidden">
+    <div className="p-4 md:p-6">
+      {/* 桌面端表格视图 */}
+      <div className="hidden md:block paper-card rounded-lg overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-paper-100 border-b border-paper-200">
@@ -124,6 +125,65 @@ export function TableView() {
           </tbody>
         </table>
       </div>
+
+      {/* 移动端卡片视图 */}
+      <div className="md:hidden space-y-4">
+        {applications.map((app) => (
+          <div
+            key={app.id}
+            className="paper-card rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+          >
+            {/* 公司和职位 */}
+            <div className="mb-3">
+              <div className="text-base font-semibold text-paper-700 font-reading mb-1">
+                {app.company?.name || '-'}
+              </div>
+              <div className="text-sm text-paper-600">{app.jobTitle}</div>
+              {app.jobType && (
+                <div className="text-xs text-paper-500 mt-1">{app.jobType}</div>
+              )}
+              {app.company?.location && (
+                <div className="text-xs text-paper-500 mt-1">📍 {app.company.location}</div>
+              )}
+            </div>
+
+            {/* 状态和日期 */}
+            <div className="flex items-center justify-between">
+              <span
+                className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_CLASS_MAP[app.status]}`}
+              >
+                {STATUS_CONFIG[app.status].label}
+              </span>
+              <div className="text-xs text-paper-500">
+                {app.applicationDate || '-'}
+              </div>
+            </div>
+
+            {/* 优先级 */}
+            {app.priority && (
+              <div className="mt-3 flex items-center">
+                <span className="text-xs text-paper-500 mr-2">优先级:</span>
+                <div className="flex">
+                  {[1, 2, 3].map((level) => (
+                    <span
+                      key={level}
+                      className={`mx-0.5 text-sm ${
+                        level <= (app.priority || 0)
+                          ? 'text-accent-amber'
+                          : 'text-paper-200'
+                      }`}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* 记录计数 */}
       <div className="mt-4 text-sm text-paper-500 text-center">
         📚 共 {applications.length} 条记录
       </div>

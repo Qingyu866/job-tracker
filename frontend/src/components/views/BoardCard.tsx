@@ -36,7 +36,7 @@ export function BoardCard({ application }: BoardCardProps) {
       ref={setNodeRef}
       style={style}
       className={`
-        paper-card p-4 rounded-lg cursor-grab active:cursor-grabbing
+        paper-card p-3 md:p-4 rounded-lg cursor-grab active:cursor-grabbing
         hover:shadow-paper-md transition-all
         ${isDragging ? 'opacity-50 rotate-2' : ''}
       `}
@@ -44,8 +44,8 @@ export function BoardCard({ application }: BoardCardProps) {
       {...listeners}
     >
       {/* 公司名称首字母 */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-full bg-paper-200 flex items-center justify-center text-paper-700 font-semibold text-sm">
+      <div className="flex items-start justify-between mb-2 md:mb-3">
+        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-paper-200 flex items-center justify-center text-paper-700 font-semibold text-xs md:text-sm flex-shrink-0">
           {initials}
         </div>
         {application.priority !== undefined && application.priority > 0 && (
@@ -78,7 +78,7 @@ export function BoardCard({ application }: BoardCardProps) {
           </span>
         )}
         {application.workLocation && (
-          <span className="px-2 py-0.5 text-xs bg-paper-100 text-paper-600 rounded">
+          <span className="px-2 py-0.5 text-xs bg-paper-100 text-paper-600 rounded truncate">
             📍 {application.workLocation}
           </span>
         )}

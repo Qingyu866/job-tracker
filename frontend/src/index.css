@@ -8,6 +8,21 @@ body {
   color: #4a3828; /* paper-700 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 移动端优化 */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  /* 改善触摸滚动 */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* 纸张纹理效果 */

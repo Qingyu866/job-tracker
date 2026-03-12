@@ -42,7 +42,7 @@ export function TimelineView() {
   });
 
   return (
-    <div className="p-6">
+    <div className="p-2 md:p-6">
       <div className="max-w-3xl mx-auto">
         {sortedApplications.map((application, index) => (
           <TimelineItem

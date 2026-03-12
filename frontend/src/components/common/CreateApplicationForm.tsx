@@ -44,7 +44,7 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           required
           value={formData.companyName}
           onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-          className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber"
+          className="w-full px-3 py-3 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber text-base"
         />
       </div>
 
@@ -57,11 +57,11 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           required
           value={formData.jobTitle}
           onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-          className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber"
+          className="w-full px-3 py-3 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber text-base"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-paper-700 mb-1">
             状态
@@ -69,7 +69,7 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           <select
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as keyof typeof STATUS_CONFIG })}
-            className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber"
+            className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber text-base"
           >
             {Object.entries(STATUS_CONFIG).map(([key, { label }]) => (
               <option key={key} value={key}>
@@ -86,7 +86,7 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           <select
             value={formData.priority}
             onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) })}
-            className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber"
+            className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber text-base"
           >
             <option value={1}>⭐</option>
             <option value={2}>⭐⭐</option>
@@ -103,7 +103,7 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           type="date"
           value={formData.applicationDate}
           onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
-          className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber"
+          className="w-full px-3 py-3 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber text-base"
         />
       </div>
 
@@ -115,7 +115,7 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           rows={3}
-          className="w-full px-3 py-2 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber"
+          className="w-full px-3 py-3 border border-paper-200 rounded-lg bg-paper-100 text-paper-700 focus:outline-none focus:ring-2 focus:ring-accent-amber text-base resize-none"
         />
       </div>
 
@@ -123,13 +123,13 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-paper-600 hover:bg-paper-200 rounded-lg transition-colors"
+          className="px-6 py-3 text-paper-600 hover:bg-paper-200 rounded-lg transition-colors text-base"
         >
           取消
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-accent-amber text-white rounded-lg hover:bg-accent-amber/90 transition-colors"
+          className="px-6 py-3 bg-accent-amber text-white rounded-lg hover:bg-accent-amber/90 transition-colors text-base font-medium"
         >
           创建
         </button>

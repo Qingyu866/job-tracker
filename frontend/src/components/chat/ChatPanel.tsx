@@ -1,9 +1,14 @@
 import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  onClose?: () => void;
+}
+
+export function ChatPanel({ onClose }: ChatPanelProps) {
   const { messages, sendMessage, isTyping, isConnected } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -31,9 +36,19 @@ export function ChatPanel() {
                 isConnected ? 'bg-accent-green' : 'bg-accent-red'
               }`}
             />
-            <span className="text-xs text-paper-500">
+            <span className="text-xs text-paper-500 hidden sm:inline">
               {isConnected ? '已连接' : '未连接'}
             </span>
+            {/* 移动端关闭按钮 */}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="md:hidden p-1 hover:bg-paper-200 rounded-lg text-paper-600 transition-colors"
+                aria-label="关闭"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
       </div>

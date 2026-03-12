@@ -91,7 +91,7 @@ export function CalendarView() {
   }, []);
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-2 md:p-6 h-full flex flex-col">
       <div className="flex-1 bg-paper-50 rounded-lg border border-paper-200 overflow-hidden">
         <Calendar
           localizer={localizer}
@@ -118,6 +118,8 @@ export function CalendarView() {
           }}
           className="rbc-calendar-paper"
           style={{ height: '100%' }}
+          views={['month', 'week', 'day', 'agenda']}
+          defaultView="month"
         />
       </div>
     </div>

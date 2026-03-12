@@ -20,7 +20,7 @@ export function TimelineItem({ application, showLine = true }: TimelineItemProps
   const statusIcon = STATUS_ICONS[application.status] || '📄';
 
   return (
-    <div className="relative pl-8 pb-8 last:pb-0">
+    <div className="relative pl-6 md:pl-8 pb-6 md:pb-8 last:pb-0">
       {/* 时间线 */}
       {showLine && (
         <div className="absolute left-0 top-8 bottom-0 w-0.5 bg-paper-200" />
@@ -37,7 +37,7 @@ export function TimelineItem({ application, showLine = true }: TimelineItemProps
       </div>
 
       {/* 卡片内容 */}
-      <div className="paper-card p-4 rounded-lg">
+      <div className="paper-card p-3 md:p-4 rounded-lg">
         <h4 className="font-serif text-paper-700 font-medium text-sm mb-2">
           {application.company?.name || '未知公司'}
         </h4>
@@ -47,20 +47,20 @@ export function TimelineItem({ application, showLine = true }: TimelineItemProps
         <div className="space-y-2">
           {application.jobType && (
             <div className="flex items-center text-xs text-paper-500">
-              <span className="w-16">类型:</span>
+              <span className="w-16 flex-shrink-0">类型:</span>
               <span className="px-2 py-0.5 bg-paper-100 rounded">{application.jobType}</span>
             </div>
           )}
           {application.workLocation && (
             <div className="flex items-center text-xs text-paper-500">
-              <span className="w-16">地点:</span>
-              <span>📍 {application.workLocation}</span>
+              <span className="w-16 flex-shrink-0">地点:</span>
+              <span className="truncate">📍 {application.workLocation}</span>
             </div>
           )}
           {application.salaryMin && (
             <div className="flex items-center text-xs text-paper-500">
-              <span className="w-16">薪资:</span>
-              <span>
+              <span className="w-16 flex-shrink-0">薪资:</span>
+              <span className="truncate">
                 {application.salaryMin}
                 {application.salaryMax && ` - ${application.salaryMax}`}
                 {application.salaryCurrency || 'CNY'}

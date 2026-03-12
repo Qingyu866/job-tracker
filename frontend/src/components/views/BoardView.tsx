@@ -38,12 +38,12 @@ export function BoardView() {
   };
 
   return (
-    <div className="p-6 h-full">
+    <div className="p-2 md:p-6 h-full">
       <DndContext
         sensors={sensors}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 h-full overflow-x-auto pb-4">
+        <div className="flex gap-2 md:gap-4 h-full overflow-x-auto pb-4 snap-x snap-mandatory">
           {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map((status) => (
             <BoardColumn
               key={status}
