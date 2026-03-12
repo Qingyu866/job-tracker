@@ -1,63 +1,54 @@
-import { useApplicationStore } from '@/store/applicationStore';
-import { Inbox, Library } from 'lucide-react';
-import { TimelineItem } from './TimelineItem';
+import { useState } from 'react';
+import { List, LayoutList } from 'lucide-react';
+import { TimelineFeedView } from './TimelineFeedView';
+import { TimelineByApplicationView } from './TimelineByApplicationView';
+
+type TimelineViewMode = 'feed' | 'by-application';
 
 export function TimelineView() {
-  const { applications, loading, error } = useApplicationStore();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-paper-500 flex items-center space-x-2">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-paper-400"></div>
-          <span>加载中...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-accent-red bg-accent-red/10 px-4 py-2 rounded-lg border border-accent-red/20">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
-  if (applications.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-paper-400">
-        <Inbox className="w-16 h-16 mb-2" />
-        <div>暂无数据</div>
-      </div>
-    );
-  }
-
-  // 按申请日期降序排序
-  const sortedApplications = [...applications].sort((a, b) => {
-    const dateA = a.applicationDate ? new Date(a.applicationDate).getTime() : 0;
-    const dateB = b.applicationDate ? new Date(b.applicationDate).getTime() : 0;
-    return dateB - dateA;
-  });
+  const [viewMode, setViewMode] = useState<TimelineViewMode>('feed');
 
   return (
-    <div className="p-2 md:p-6">
-      <div className="max-w-3xl mx-auto">
-        {sortedApplications.map((application, index) => (
-          <TimelineItem
-            key={application.id}
-            application={application}
-            showLine={index < sortedApplications.length - 1}
-          />
-        ))}
+    <div className="h-full flex flex-col">
+      {/* 视图切换按钮 */}
+      <div className="flex-shrink-0 p-4 border-b border-paper-200 bg-paper-50">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
+          <h2 className="font-serif text-paper-700 font-semibold">时间线</h2>
+
+          {/* 切换按钮组 */}
+          <div className="flex items-center gap-2 bg-paper-100 p-1 rounded-lg border border-paper-300">
+            <button
+              onClick={() => setViewMode('feed')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'feed'
+                  ? 'bg-white text-paper-800 shadow-sm'
+                  : 'text-paper-600 hover:text-paper-800'
+              }`}
+              title="动态流视图"
+            >
+              <List className="w-4 h-4" />
+              <span className="hidden sm:inline">动态流</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('by-application')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'by-application'
+                  ? 'bg-white text-paper-800 shadow-sm'
+                  : 'text-paper-600 hover:text-paper-800'
+              }`}
+              title="按申请分组"
+            >
+              <LayoutList className="w-4 h-4" />
+              <span className="hidden sm:inline">按申请</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 统计信息 */}
-      <div className="mt-6 text-center text-sm text-paper-500 flex items-center justify-center gap-1">
-        <Library className="w-4 h-4" />
-        共 {applications.length} 条记录
+      {/* 视图内容 */}
+      <div className="flex-1 overflow-y-auto">
+        {viewMode === 'feed' ? <TimelineFeedView /> : <TimelineByApplicationView />}
       </div>
     </div>
   );

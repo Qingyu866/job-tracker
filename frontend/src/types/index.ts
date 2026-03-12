@@ -59,6 +59,24 @@ export interface InterviewRecord {
   updatedAt?: string;
 }
 
+// 申请日志
+export interface ApplicationLog {
+  id: number;
+  applicationId: number;
+  logType: 'APPLICATION_CREATED' | 'APPLICATION_SUBMITTED' | 'STATUS_CHANGE' | 'INTERVIEW_SCHEDULED' | 'INTERVIEW_COMPLETED' | 'INTERVIEW_CANCELLED' | 'INTERVIEW_NO_SHOW' | 'FEEDBACK_RECEIVED' | 'NOTE_ADDED' | 'DOCUMENT_UPLOADED';
+  logTitle: string;
+  logContent: string;
+  loggedBy: 'SYSTEM' | 'USER';
+  createdAt: string;
+}
+
+// 申请日志DTO（包含申请和公司信息）
+export interface ApplicationLogDTO {
+  log: ApplicationLog;
+  application: JobApplication;
+  company?: Company;
+}
+
 // WebSocket 消息类型
 export interface WebSocketMessage {
   type: 'CHAT' | 'STATUS' | 'ERROR';

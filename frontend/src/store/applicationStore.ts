@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { JobApplication, Company, InterviewRecord, ViewType } from '@/types';
+import type { JobApplication, Company, InterviewRecord, ApplicationLogDTO, ViewType } from '@/types';
 import { apiClient } from '@/lib/apiClient';
 
 interface ApplicationStore {
@@ -7,6 +7,7 @@ interface ApplicationStore {
   applications: JobApplication[];
   companies: Company[];
   interviews: InterviewRecord[];
+  logs: ApplicationLogDTO[];
   currentView: ViewType;
   filters: {
     status?: string;
@@ -19,6 +20,7 @@ interface ApplicationStore {
   // 操作
   fetchApplications: () => Promise<void>;
   fetchInterviews: () => Promise<void>;
+  fetchLogs: () => Promise<void>;
   createApplication: (data: Partial<JobApplication>) => Promise<number>;
   updateApplication: (id: number, data: Partial<JobApplication>) => Promise<void>;
   updateApplicationStatus: (id: number, status: string) => Promise<void>;
@@ -32,6 +34,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   applications: [],
   companies: [],
   interviews: [],
+  logs: [],
   currentView: 'table',
   filters: {},
   loading: false,
@@ -41,8 +44,22 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   fetchApplications: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await apiClient.get<JobApplication[]>('/applications');
-      set({ applications: response.data || [], loading: false });
+      // 同时获取申请和公司
+      const [appsResponse, companiesResponse] = await Promise.all([
+        apiClient.get<JobApplication[]>('/applications'),
+        apiClient.get<Company[]>('/companies')
+      ]);
+
+      const applications = appsResponse.data || [];
+      const companies = companiesResponse.data || [];
+
+      // 为每个申请关联公司信息
+      const applicationsWithCompany = applications.map(app => ({
+        ...app,
+        company: companies.find(c => c.id === app.companyId) || null
+      }));
+
+      set({ applications: applicationsWithCompany, companies, loading: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : '获取申请列表失败';
       set({ error: message, loading: false, applications: [] });
@@ -58,6 +75,18 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     } catch (error) {
       const message = error instanceof Error ? error.message : '获取面试列表失败';
       set({ error: message, loading: false, interviews: [] });
+    }
+  },
+
+  // 获取日志列表
+  fetchLogs: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await apiClient.get<ApplicationLogDTO[]>('/logs');
+      set({ logs: response.data || [], loading: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '获取日志列表失败';
+      set({ error: message, loading: false, logs: [] });
     }
   },
 

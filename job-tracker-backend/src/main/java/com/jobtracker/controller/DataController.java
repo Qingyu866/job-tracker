@@ -3,6 +3,7 @@ package com.jobtracker.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jobtracker.common.result.Result;
+import com.jobtracker.dto.ApplicationLogDTO;
 import com.jobtracker.entity.Company;
 import com.jobtracker.entity.InterviewRecord;
 import com.jobtracker.entity.JobApplication;
@@ -15,7 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 数据查询控制器
@@ -501,6 +504,80 @@ public class DataController {
         } catch (Exception e) {
             log.error("创建公司失败", e);
             return Result.error("创建失败：" + e.getMessage());
+        }
+    }
+
+    // ==================== 日志相关接口 ====================
+
+    /**
+     * 获取所有日志（按时间倒序，带申请和公司信息）
+     *
+     * @return 日志列表
+     */
+    @GetMapping("/logs")
+    public Result<List<ApplicationLogDTO>> getAllLogs() {
+        try {
+            List<com.jobtracker.entity.ApplicationLog> logs = applicationLogService.listRecent(100);
+
+            // 构建DTO列表，包含申请和公司信息
+            List<ApplicationLogDTO> dtoList = logs.stream()
+                .map(log -> {
+                    ApplicationLogDTO dto = new ApplicationLogDTO();
+                    dto.setLog(log);
+
+                    // 获取申请信息
+                    JobApplication application = applicationService.getById(log.getApplicationId());
+                    dto.setApplication(application);
+
+                    // 获取公司信息
+                    if (application != null && application.getCompanyId() != null) {
+                        Company company = companyService.getById(application.getCompanyId());
+                        dto.setCompany(company);
+                    }
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+            return Result.success("查询成功", dtoList);
+        } catch (Exception e) {
+            log.error("获取日志列表失败", e);
+            return Result.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据申请ID获取日志（带申请和公司信息）
+     *
+     * @param applicationId 申请ID
+     * @return 日志列表
+     */
+    @GetMapping("/applications/{applicationId}/logs")
+    public Result<List<ApplicationLogDTO>> getLogsByApplicationId(@PathVariable Long applicationId) {
+        try {
+            List<com.jobtracker.entity.ApplicationLog> logs = applicationLogService.listByApplicationId(applicationId);
+
+            // 构建DTO列表
+            List<ApplicationLogDTO> dtoList = new ArrayList<>();
+            JobApplication application = applicationService.getById(applicationId);
+            Company company = null;
+
+            if (application != null && application.getCompanyId() != null) {
+                company = companyService.getById(application.getCompanyId());
+            }
+
+            for (com.jobtracker.entity.ApplicationLog log : logs) {
+                ApplicationLogDTO dto = new ApplicationLogDTO();
+                dto.setLog(log);
+                dto.setApplication(application);
+                dto.setCompany(company);
+                dtoList.add(dto);
+            }
+
+            return Result.success("查询成功", dtoList);
+        } catch (Exception e) {
+            log.error("获取申请日志失败：applicationId={}", applicationId, e);
+            return Result.error("获取失败：" + e.getMessage());
         }
     }
 

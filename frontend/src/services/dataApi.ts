@@ -1,5 +1,5 @@
 import apiClient from './api';
-import type { JobApplication, Company, InterviewRecord } from '@/types';
+import type { JobApplication, Company, InterviewRecord, ApplicationLog, ApplicationLogDTO } from '@/types';
 
 /**
  * 数据 API 服务
@@ -163,6 +163,24 @@ export const dataApi = {
     const response = await apiClient.put<any>(`/interviews/${id}/follow-up`, {
       followUpRequired,
     });
+    return response.data.data;
+  },
+
+  // ========== 日志相关 ==========
+
+  /**
+   * 获取所有日志（带申请和公司信息）
+   */
+  getLogs: async (): Promise<ApplicationLogDTO[]> => {
+    const response = await apiClient.get<any>('/logs');
+    return response.data.data;
+  },
+
+  /**
+   * 根据申请ID获取日志（带申请和公司信息）
+   */
+  getLogsByApplicationId: async (applicationId: number): Promise<ApplicationLogDTO[]> => {
+    const response = await apiClient.get<any>(`/applications/${applicationId}/logs`);
     return response.data.data;
   },
 
