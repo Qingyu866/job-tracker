@@ -6,6 +6,7 @@ import { useApplicationStore } from '@/store/applicationStore';
 import type { InterviewRecord } from '@/types';
 import { InterviewDetailModal } from '@/components/common/InterviewDetailModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import './CalendarView.css';
 
 // 配置本地化
 const localizer = dateFnsLocalizer({
@@ -20,17 +21,10 @@ const localizer = dateFnsLocalizer({
 function CalendarEvent({ event }: { event: CalendarEventData }) {
   return (
     <div
-      className={`px-2 py-1 rounded text-xs font-medium border ${
-        event.resource.status === 'SCHEDULED'
-          ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/30'
-          : event.resource.status === 'COMPLETED'
-          ? 'bg-accent-green/20 text-accent-green border-accent-green/30'
-          : event.resource.status === 'CANCELLED'
-          ? 'bg-accent-red/20 text-accent-red border-accent-red/30'
-          : 'bg-paper-100 text-paper-600 border-paper-200'
-      }`}
+      className="px-3 py-2 rounded text-xs font-medium border-2 border-paper-400"
+      style={{ backgroundColor: '#E6E6E6', color: '#000000' }}
     >
-      <div className="truncate font-medium">{event.title}</div>
+      <div className="truncate font-medium text-sm">{event.title}</div>
       {event.interviewType && (
         <div className="text-xs opacity-80 truncate">{event.interviewType}</div>
       )}
@@ -87,6 +81,7 @@ export function CalendarView() {
           title: `面试 - ${interview.interviewType || '未指定类型'}`,
           start: interviewDate,
           end: endDate,
+          allDay: false,  // 明确标记为非全天事件
           resource: interview,
           interviewType: interview.interviewType,
         } as CalendarEventData;
@@ -114,7 +109,54 @@ export function CalendarView() {
     setCurrentView(view);
   }, []);
 
-  console.log('[CalendarView] 渲染日历，事件数量:', events.length, '当前日期:', currentDate);
+  // 计算当前视图范围内的面试事件数量
+  const currentViewEvents = useMemo(() => {
+    if (currentView === Views.MONTH) return events;
+
+    const viewStart = new Date(currentDate);
+    const viewEnd = new Date(currentDate);
+
+    if (currentView === Views.WEEK) {
+      // 获取本周的起始和结束日期
+      const dayOfWeek = viewStart.getDay();
+      viewStart.setDate(viewStart.getDate() - dayOfWeek);
+      viewStart.setHours(0, 0, 0, 0);
+      viewEnd.setDate(viewStart.getDate() + 7);
+      viewEnd.setHours(23, 59, 59, 999);
+    } else if (currentView === Views.DAY || currentView === Views.AGENDA) {
+      // 当天的起始和结束
+      viewStart.setHours(0, 0, 0, 0);
+      viewEnd.setHours(23, 59, 59, 999);
+    }
+
+    return events.filter(event => {
+      const eventDate = new Date(event.start);
+      return eventDate >= viewStart && eventDate <= viewEnd;
+    });
+  }, [events, currentDate, currentView]);
+
+  // 计算每天有多少个面试
+  const interviewsByDate = useMemo(() => {
+    const countMap = new Map<string, number>();
+
+    events.forEach(event => {
+      const dateKey = format(new Date(event.start), 'yyyy-MM-dd');
+      countMap.set(dateKey, (countMap.get(dateKey) || 0) + 1);
+    });
+
+    return countMap;
+  }, [events]);
+
+  // 根据面试数量动态计算日历高度
+  const calendarHeight = useMemo(() => {
+    if (currentView === Views.MONTH) return '100%';
+
+    // 周/日视图：24小时 × 每小时100px = 2400px
+    // 再加上头部高度（约150px）和一些额外空间
+    return '2600px'; // 固定高度，24小时 × 100px + 头部
+  }, [currentView]);
+
+  console.log('[CalendarView] 渲染日历，事件数量:', events.length, '当前视图事件:', currentViewEvents.length, '计算高度:', calendarHeight);
 
   // 加载状态
   if (loading) {
@@ -154,27 +196,112 @@ export function CalendarView() {
   }
 
   return (
-    <div className="p-2 md:p-6 h-full flex flex-col">
-      <div className="flex-1 bg-paper-50 rounded-lg border border-paper-200 overflow-hidden">
+    <div className="p-2 md:p-6 h-full flex flex-col overflow-auto">
+      <div className={`${currentView === Views.MONTH ? 'flex-1' : ''} bg-paper-50 rounded-lg border border-paper-200`}>
         <Calendar
           localizer={localizer}
           events={events}
-          defaultDate={currentDate}
+          date={currentDate}
           startAccessor="start"
           endAccessor="end"
           onSelectEvent={handleSelectEvent}
           onNavigate={handleNavigate}
           onView={handleViewChange}
+          onDrillDown={(date: Date) => {
+            // 点击日期时跳转到日视图
+            setCurrentDate(date);
+            setCurrentView(Views.DAY);
+          }}
           view={currentView}
           components={{
             event: CalendarEvent as any,
-          toolbar: (props: any) => {
-              // 过滤掉有问题的导航按钮
-              const { views } = props;
+            timeGutterHeader: () => (
+              <div className="rbc-time-gutter-header flex items-center justify-center py-2 text-paper-600">
+                <span className="text-xs font-medium">时间</span>
+              </div>
+            ),
+            week: {
+              header: ({ date, localizer }: { date: Date; localizer: any }) => {
+                // 自定义周视图的列头，显示星期和日期
+                const dayOfWeek = localizer.format(date, 'cccc', 'zh-CN');
+                const dayOfMonth = localizer.format(date, 'M月d日', 'zh-CN');
+                const isToday = localizer.format(date, 'yyyy-MM-dd', 'zh-CN') === localizer.format(new Date(), 'yyyy-MM-dd', 'zh-CN');
+
+                return (
+                  <div className={`flex flex-col items-center justify-center py-2 ${isToday ? 'bg-accent-blue/10' : ''}`}>
+                    <div className={`text-sm font-medium ${isToday ? 'text-accent-blue' : 'text-paper-700'}`}>
+                      {dayOfWeek}
+                    </div>
+                    <div className={`text-lg font-bold ${isToday ? 'text-accent-blue' : 'text-paper-900'}`}>
+                      {dayOfMonth}
+                    </div>
+                  </div>
+                );
+              },
+            },
+            day: {
+              header: ({ date, localizer }: { date: Date; localizer: any }) => {
+                // 自定义日视图的列头，显示星期和日期
+                const dayOfWeek = localizer.format(date, 'cccc', 'zh-CN');
+                const dayOfMonth = localizer.format(date, 'M月d日', 'zh-CN');
+                const isToday = localizer.format(date, 'yyyy-MM-dd', 'zh-CN') === localizer.format(new Date(), 'yyyy-MM-dd', 'zh-CN');
+
+                return (
+                  <div className={`flex flex-col items-center justify-center py-2 ${isToday ? 'bg-accent-blue/10' : ''}`}>
+                    <div className={`text-sm font-medium ${isToday ? 'text-accent-blue' : 'text-paper-700'}`}>
+                      {dayOfWeek}
+                    </div>
+                    <div className={`text-lg font-bold ${isToday ? 'text-accent-blue' : 'text-paper-900'}`}>
+                      {dayOfMonth}
+                    </div>
+                  </div>
+                );
+              },
+            },
+            month: {
+              dateHeader: ({ date, label, drilldownView }: { date: Date; label: string; drilldownView: string }) => {
+                const dateKey = format(date, 'yyyy-MM-dd');
+                const count = interviewsByDate.get(dateKey) || 0;
+                const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
+                const handleClick = () => {
+                  setCurrentDate(date);
+                  setCurrentView(Views.DAY);
+                };
+
+                return (
+                  <button
+                    type="button"
+                    onClick={handleClick}
+                    className="w-full h-full relative cursor-pointer hover:bg-paper-100/50 rounded transition-colors"
+                    style={{ background: 'transparent', border: 'none', padding: 0 }}
+                  >
+                    {/* 左上角的日期数字 */}
+                    <div className="absolute top-1 left-2 pointer-events-none">
+                      <span className={`text-sm ${isToday ? 'text-accent-blue font-bold' : 'text-paper-700'}`}>
+                        {label}
+                      </span>
+                    </div>
+
+                    {/* 居中显示的面试数量 */}
+                    {count > 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="rounded-lg px-3 py-1.5 shadow-lg border-2 border-paper-400" style={{ backgroundColor: '#E6E6E6', color: '#4a3828' }}>
+                          <span className="text-lg font-bold">{count}</span>
+                          <span className="text-xs ml-1">个面试</span>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              },
+            },
+            toolbar: (props: any) => {
+              const { views, label } = props;
               return (
                 <div className="rbc-toolbar">
                   <span className="rbc-btn-group">
-                    <button type="button" onClick={() => handleNavigate(new Date(), currentView, 'TODAY')}>
+                    <button type="button" onClick={() => props.onNavigate('TODAY')}>
                       今天
                     </button>
                     <button type="button" onClick={() => props.onNavigate('PREV')}>
@@ -184,7 +311,7 @@ export function CalendarView() {
                       下一页
                     </button>
                   </span>
-                  <span className="rbc-toolbar-label">{format(currentDate, 'yyyy年MM月', { locale: zhCN })}</span>
+                  <span className="rbc-toolbar-label">{label}</span>
                   <span className="rbc-btn-group">{views.map((view: View) => (
                     <button
                       key={view}
@@ -199,6 +326,24 @@ export function CalendarView() {
               );
             },
           }}
+          formats={{
+            dayFormat: 'M月d日 EEEE',
+            timeGutterFormat: (date: Date) => {
+              const hours = date.getHours().toString().padStart(2, '0');
+              const minutes = date.getMinutes().toString().padStart(2, '0');
+              return `${hours}时${minutes}分`;
+            },
+            eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) => {
+              const startHours = start.getHours().toString().padStart(2, '0');
+              const startMinutes = start.getMinutes().toString().padStart(2, '0');
+              const endHours = end.getHours().toString().padStart(2, '0');
+              const endMinutes = end.getMinutes().toString().padStart(2, '0');
+              return `${startHours}时${startMinutes}分 - ${endHours}时${endMinutes}分`;
+            },
+          }}
+          step={60}
+          timeslots={1}
+          allDayMaxRows={0}
           messages={{
             next: '下一页',
             previous: '上一页',
@@ -214,7 +359,7 @@ export function CalendarView() {
             showMore: (count: number) => `+${count} 更多`,
           }}
           className="rbc-calendar-paper"
-          style={{ height: '100%' }}
+          style={{ height: calendarHeight }}
           views={['month', 'week', 'day', 'agenda']}
           defaultView="month"
         />

@@ -1,0 +1,98 @@
+/* 隐藏全天事件区域 */
+.rbc-allday-cell {
+  display: none !important;
+}
+
+/* 月视图：只隐藏事件卡片，保留日期单元格 */
+.rbc-month-view .rbc-event {
+  display: none !important;
+}
+
+/* 月视图日期单元格样式 */
+.rbc-month-view .rbc-date-cell {
+  position: relative;
+  padding: 4px 8px;
+  min-height: 60px;
+  cursor: pointer;
+}
+
+.rbc-month-view .rbc-date-cell:hover {
+  background-color: #f5f0e6;
+}
+
+/* 日期数字保持默认样式 */
+.rbc-date-header {
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+
+
+
+
+/* 统一字体样式 - 使用衬线字体（与"创建新申请"相同） */
+.rbc-calendar * {
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+}
+
+/* 工具栏标签 */
+.rbc-toolbar-label {
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+  font-weight: 700;
+  color: #4a3828;
+}
+
+/* 时间列样式 */
+.rbc-time-gutter .rbc-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4a3828;
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+  padding: 10px 0;
+}
+
+/* 时间槽高度 - 固定100px */
+.rbc-time-slot {
+  height: 100px !important;
+  min-height: 100px !important;
+}
+
+/* 事件外层容器样式 */
+.rbc-event {
+  font-size: 0.875rem;
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+  min-height: 80px;
+  padding: 8px 10px;
+  background-color: #E6E6E6 !important;
+  color: #000000 !important;
+}
+
+.rbc-event-label {
+  font-size: 0.875rem;
+  padding: 4px 0;
+  font-weight: 500;
+  color: #000000 !important;
+}
+
+.rbc-event-content {
+  padding: 6px 0;
+}
+
+/* 工具栏按钮样式 */
+.rbc-toolbar button {
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+  font-size: 0.875rem;
+}
+
+/* 头部样式（星期和日期） */
+.rbc-header {
+  font-family: Georgia, 'Times New Roman', Times, serif !important;
+  color: #4a3828;
+  padding: 0.75rem 0.5rem;
+}
+
+/* 当前时间指示器 */
+.rbc-current-time-indicator {
+  background-color: #4a3828 !important;
+}
