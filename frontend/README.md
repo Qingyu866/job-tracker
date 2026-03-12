@@ -1,73 +1,77 @@
-# React + TypeScript + Vite
+# Job Tracker Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+求职追踪应用的前端界面 - Notion 风格，支持 AI 对话和多视图系统。
 
-Currently, two official plugins are available:
+## 🎨 特性
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ✅ **Notion 风格 UI**：牛皮纸阅读风格，舒适宜人
+- ✅ **多视图系统**：表格、看板、时间线、日历 4 种视图
+- ✅ **拖拽功能**：看板视图支持拖拽更新状态
+- ✅ **AI 对话面板**：集成 WebSocket 实时通信
+- ✅ **快捷操作**：浮动按钮快速创建申请
 
-## React Compiler
+## 🛠️ 技术栈
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **框架**: React 18 + Vite 5.0 + TypeScript 5.0
+- **UI**: Tailwind CSS 4.x + 自定义牛皮纸风格
+- **状态管理**: Zustand 4.4+
+- **路由**: React Router 6.20+
+- **HTTP**: Axios 1.6+
+- **拖拽**: @dnd-kit/core 0.3+
+- **日历**: react-big-calendar 1.11+
 
-## Expanding the ESLint configuration
+## 📦 安装
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🚀 快速开始
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# 开发模式
+npm run dev
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 构建
+npm run build
+
+# 预览
+npm run preview
 ```
+
+## 🔧 环境变量
+
+创建 `.env.local`：
+
+```bash
+VITE_API_BASE_URL=http://localhost:8080/api/data
+VITE_WS_URL=ws://localhost:8080/api/ws/chat
+```
+
+## 📁 项目结构
+
+```
+frontend/
+├── src/
+│   ├── components/    # 组件
+│   │   ├── chat/       # AI 对话
+│   │   ├── common/     # 通用组件
+│   │   ├── layout/     # 布局
+│   │   └── views/      # 视图
+│   ├── pages/         # 页面
+│   ├── store/        # 状态管理
+│   ├── services/     # API 服务
+│   └── types/        # 类型定义
+└── package.json
+```
+
+## 🎯 开发进度
+
+- [x] Task 1-11: 核心功能完成
+- [ ] Task 12: 响应式适配（可选）
+- [x] Task 13: 测试与部署
+
+## 🔗 相关链接
+
+- 后端: [job-tracker-backend](../job-tracker-backend)
+- 设计: [docs/plans/](../docs/plans)

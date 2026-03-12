@@ -48,3 +48,112 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #c9bd9f;
 }
+
+/* react-big-calendar 牛皮纸风格覆盖 */
+@layer components {
+  .rbc-calendar-paper {
+    background-color: #faf8f3;
+  }
+
+  .rbc-toolbar {
+    background-color: #f5f0e6;
+    border-bottom: 1px solid #ebe4d6;
+    padding: 1rem;
+  }
+
+  .rbc-toolbar-label {
+    color: #4a3828;
+    font-family: Georgia, serif;
+    font-size: 1rem;
+  }
+
+  .rbc-toolbar button {
+    color: #4a3828;
+    border-color: #ddd4c0;
+    background-color: #faf8f3;
+  }
+
+  .rbc-toolbar button:hover,
+  .rbc-toolbar button.rbc-active {
+    background-color: #ebe4d6;
+    color: #6b5344;
+  }
+
+  .rbc-month-view,
+  .rbc-time-view,
+  .rbc-agenda-view {
+    background-color: #faf8f3;
+  }
+
+  .rbc-header {
+    color: #4a3828;
+    font-family: Georgia, serif;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+  }
+
+  .rbc-off-range-bg {
+    background-color: #f5f0e6;
+  }
+
+  .rbc-today {
+    background-color: #ebe4d6 !important;
+  }
+
+  .rbc-day-bg + .rbc-today {
+    background-color: #ebe4d6;
+  }
+
+  .rbc-row-bg {
+    background-color: #faf8f3;
+  }
+
+  .rbc-day-bg {
+    background-color: #faf8f3;
+  }
+
+  .rbc-event {
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .rbc-event.rbc-selected {
+    background-color: #ddd4c0;
+  }
+
+  .rbc-show-more {
+    color: #8b7355;
+    background-color: #f5f0e6;
+  }
+
+  .rbc-month-view .rbc-header {
+    border-bottom: 1px solid #ebe4d6;
+  }
+
+  .rbc-month-view .rbc-date {
+    border: 1px solid #ebe4d6;
+  }
+}
+
+/* 打字机动画 */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}

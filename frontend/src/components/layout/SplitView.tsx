@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 
 interface SplitViewProps {
   children: React.ReactNode;
@@ -29,16 +30,7 @@ export function SplitView({ children }: SplitViewProps) {
           className="h-full border-l border-paper-200 bg-paper-50"
           style={{ width: `${panelWidth}px` }}
         >
-          {/* ChatPanel 内容将在 Task 10 实现 */}
-          <div className="p-4 h-full flex flex-col">
-            <div className="flex-1 flex items-center justify-center text-paper-400">
-              <div className="text-center">
-                <div className="text-4xl mb-2">🤖</div>
-                <div className="text-sm">AI 对话面板</div>
-                <div className="text-xs mt-1">（Task 10 实现）</div>
-              </div>
-            </div>
-          </div>
+          <ChatPanel />
         </div>
       )}
     </div>
