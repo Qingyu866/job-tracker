@@ -1,5 +1,6 @@
 package com.jobtracker.agent.tools;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobtracker.entity.Company;
 import com.jobtracker.service.CompanyService;
 import dev.langchain4j.agent.tool.Tool;
@@ -26,6 +27,7 @@ import java.util.List;
 public class CompanyTools {
 
     private final CompanyService companyService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 创建公司信息
@@ -41,7 +43,14 @@ public class CompanyTools {
      * @param description 公司描述（可选）
      * @return 操作结果的描述性消息
      */
-    @Tool("创建或更新公司信息。参数：公司名称、行业类型、公司规模、地址、官网、描述")
+    @Tool("""
+            【仅用于创建/添加新公司】当用户想要添加一个新公司到系统时使用。
+            适用场景：用户明确说"创建"、"添加"、"新增"公司时才调用此工具。
+
+            不要与查询混淆！如果用户说"查看"、"有哪些"、"列出"等，应使用 queryCompanies 工具。
+
+            参数：公司名称（必填）、行业类型、公司规模、地址、官网、描述
+            """)
     public String createCompany(
             String name,
             String industry,
@@ -89,7 +98,17 @@ public class CompanyTools {
      * @param keyword  按名称模糊搜索（可选）
      * @return 查询结果的描述性消息
      */
-    @Tool("查询公司列表。参数：行业筛选、地址筛选、名称关键词")
+    @Tool("""
+            【查看/搜索已有公司】当用户想要查看、浏览、搜索系统中的公司时使用。
+            适用场景：用户说"查看"、"有哪些"、"列出"、"搜索"、"看看"等关键词时调用此工具。
+
+            注意：这是查询工具，不是创建工具！
+
+            参数（全部可选）：按行业筛选、按地址筛选、按名称关键词搜索
+            如果不提供任何参数，将返回所有公司
+
+            返回格式：JSON 数组，包含所有匹配公司的详细信息
+            """)
     public String queryCompanies(
             String industry,
             String location,
@@ -112,37 +131,11 @@ public class CompanyTools {
             }
 
             if (companies.isEmpty()) {
-                return "📋 没有找到符合条件的公司";
+                return "[]";
             }
 
-            // 格式化输出
-            StringBuilder sb = new StringBuilder();
-            sb.append("📋 找到 ").append(companies.size()).append(" 家公司：\n\n");
-
-            for (Company company : companies) {
-                sb.append(String.format("""
-                        **%s** (ID: %d)
-                        - 行业：%s
-                        - 规模：%s
-                        - 地址：%s
-                        """,
-                        company.getName(),
-                        company.getId(),
-                        company.getIndustry() != null ? company.getIndustry() : "未指定",
-                        company.getSize() != null ? company.getSize() : "未指定",
-                        company.getLocation() != null ? company.getLocation() : "未指定"
-                ));
-
-                if (company.getWebsite() != null && !company.getWebsite().trim().isEmpty()) {
-                    sb.append("- 官网：").append(company.getWebsite()).append("\n");
-                }
-                if (company.getDescription() != null && !company.getDescription().trim().isEmpty()) {
-                    sb.append("- 描述：").append(company.getDescription()).append("\n");
-                }
-                sb.append("\n");
-            }
-
-            return sb.toString();
+            // 使用 ObjectMapper 序列化为 JSON
+            return objectMapper.writeValueAsString(companies);
         } catch (Exception e) {
             log.error("查询公司失败", e);
             return "❌ 查询失败：" + e.getMessage();

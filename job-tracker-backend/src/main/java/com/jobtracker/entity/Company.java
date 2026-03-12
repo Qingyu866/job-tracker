@@ -32,7 +32,7 @@ public class Company implements Serializable {
     /**
      * 公司ID（主键，自增）
      */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**

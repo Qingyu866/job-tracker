@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -39,6 +39,17 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             <span className="text-xs text-paper-500 hidden sm:inline">
               {isConnected ? '已连接' : '未连接'}
             </span>
+            {/* 桌面端收起按钮 */}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="hidden md:block p-1.5 hover:bg-paper-200 rounded-lg text-paper-600 transition-colors"
+                aria-label="收起面板"
+                title="收起面板"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
             {/* 移动端关闭按钮 */}
             {onClose && (
               <button

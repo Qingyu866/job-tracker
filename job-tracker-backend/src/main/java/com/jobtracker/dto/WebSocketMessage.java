@@ -22,13 +22,19 @@ import lombok.NoArgsConstructor;
 public class WebSocketMessage {
 
     /**
+     * 消息类型常量
+     */
+    public static final String TYPE_CHAT = "CHAT";
+    public static final String TYPE_HEARTBEAT = "HEARTBEAT";
+    public static final String TYPE_ERROR = "ERROR";
+
+    /**
      * 消息类型
      * <p>
      * 可选值：
      * - CHAT: 聊天消息
-     * - STREAM: 流式响应片段
+     * - HEARTBEAT: 心跳消息
      * - ERROR: 错误消息
-     * - STATUS: 状态通知
      * </p>
      */
     private String type;
@@ -61,21 +67,21 @@ public class WebSocketMessage {
      */
     public static WebSocketMessage chat(String content) {
         return WebSocketMessage.builder()
-                .type("CHAT")
+                .type(TYPE_CHAT)
                 .content(content)
                 .timestamp(System.currentTimeMillis())
                 .build();
     }
 
     /**
-     * 创建流式响应片段
+     *创建心跳消息
      *
-     * @param content 消息片段
+     * @param content 心跳内容（ping/pong）
      * @return WebSocketMessage 实例
      */
-    public static WebSocketMessage stream(String content) {
+    public static WebSocketMessage heartbeat(String content) {
         return WebSocketMessage.builder()
-                .type("STREAM")
+                .type(TYPE_HEARTBEAT)
                 .content(content)
                 .timestamp(System.currentTimeMillis())
                 .build();
@@ -89,23 +95,18 @@ public class WebSocketMessage {
      */
     public static WebSocketMessage error(String content) {
         return WebSocketMessage.builder()
-                .type("ERROR")
+                .type(TYPE_ERROR)
                 .content(content)
                 .timestamp(System.currentTimeMillis())
                 .build();
     }
 
     /**
-     * 创建状态通知
+     * 判断是否为心跳消息
      *
-     * @param content 状态信息
-     * @return WebSocketMessage 实例
+     * @return true 如果是 HEARTBEAT 消息
      */
-    public static WebSocketMessage status(String content) {
-        return WebSocketMessage.builder()
-                .type("STATUS")
-                .content(content)
-                .timestamp(System.currentTimeMillis())
-                .build();
+    public boolean isHeartbeat() {
+        return TYPE_HEARTBEAT.equals(this.type);
     }
 }

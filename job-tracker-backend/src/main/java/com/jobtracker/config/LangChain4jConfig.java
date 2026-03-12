@@ -4,6 +4,8 @@ import com.jobtracker.agent.JobAgent;
 import com.jobtracker.agent.tools.ApplicationTools;
 import com.jobtracker.agent.tools.CompanyTools;
 import com.jobtracker.agent.tools.InterviewTools;
+import dev.langchain4j.http.client.jdk.JdkHttpClient;
+import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -14,8 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.net.http.HttpClient;
 import java.time.Duration;
-import java.util.function.Supplier;
 
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 
@@ -50,7 +52,7 @@ public class LangChain4jConfig {
     /**
      * 模型名称
      */
-    @Value("${langchain4j.lm-studio.model-name:gemma-3-4b-it}")
+    @Value("${langchain4j.lm-studio.model-name:google/gemma-3-4b}")
     private String modelName;
 
     /**
@@ -62,7 +64,7 @@ public class LangChain4jConfig {
     /**
      * 超时时间（秒）
      */
-    @Value("${langchain4j.lm-studio.timeout:60}")
+    @Value("${langchain4j.lm-studio.timeout:120}")
     private Integer timeout;
 
     /**
@@ -71,23 +73,34 @@ public class LangChain4jConfig {
     @Value("${langchain4j.chat-memory.window-size:20}")
     private Integer chatMemoryWindowSize;
 
+
     /**
      * 配置流式聊天模型
      * <p>
      * 使用 OpenAI 兼容的接口连接 LM Studio
      * 支持流式输出，提供更好的用户体验
+     * 强制使用 HTTP/1.1 协议以兼容 LM Studio
      * </p>
      *
      * @return StreamingChatModel 实例
      */
     @Bean
     public StreamingChatModel streamingChatModel() {
+        // 创建使用 HTTP/1.1 的 JDK HTTP 客户端
+        HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(timeout));
+
+        JdkHttpClientBuilder jdkHttpClientBuilder = JdkHttpClient.builder()
+                .httpClientBuilder(httpClientBuilder);
+
         return OpenAiStreamingChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .temperature(temperature)
                 .timeout(Duration.ofSeconds(timeout))
+                .httpClientBuilder(jdkHttpClientBuilder)
                 .build();
     }
 
@@ -98,12 +111,23 @@ public class LangChain4jConfig {
      */
     @Bean
     public OpenAiChatModel chatModel() {
+        // 创建使用 HTTP/1.1 的 JDK HTTP 客户端
+        HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(timeout));
+
+        JdkHttpClientBuilder jdkHttpClientBuilder = JdkHttpClient.builder()
+                .httpClientBuilder(httpClientBuilder);
+
         return OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .temperature(temperature)
                 .timeout(Duration.ofSeconds(timeout))
+                .httpClientBuilder(jdkHttpClientBuilder)
+                .logResponses(true)
+                .logRequests(true)
                 .build();
     }
 
@@ -119,7 +143,7 @@ public class LangChain4jConfig {
     @Bean
     public ChatMemoryProvider chatMemoryProvider() {
         return memoryId -> MessageWindowChatMemory.builder()
-                .maxMessages(chatMemoryWindowSize)
+                .maxMessages(10)  // 减小窗口大小，避免历史过长导致混乱
                 .id(memoryId)
                 .build();
     }
@@ -131,8 +155,9 @@ public class LangChain4jConfig {
      * 创建完整的 AI 服务实例
      * </p>
      *
+     * @param chatModel         非流式聊天模型
      * @param streamingChatModel 流式聊天模型
-     * @param chatMemoryProvider 聊天记忆提供器
+     * @param chatMemoryProvider 聊天记忆提供者
      * @param applicationTools   申请工具方法
      * @param interviewTools     面试工具方法
      * @param companyTools       公司工具方法
@@ -140,6 +165,7 @@ public class LangChain4jConfig {
      */
     @Bean
     public JobAgent jobAgent(
+            OpenAiChatModel chatModel,
             StreamingChatModel streamingChatModel,
             ChatMemoryProvider chatMemoryProvider,
             ApplicationTools applicationTools,
@@ -148,6 +174,7 @@ public class LangChain4jConfig {
     ) {
         return AiServices.builder(JobAgent.class)
                 .streamingChatModel(streamingChatModel)
+                .chatModel(chatModel)
                 .chatMemoryProvider(chatMemoryProvider)
                 .tools(applicationTools, interviewTools, companyTools)
                 .build();

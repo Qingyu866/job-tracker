@@ -3,6 +3,7 @@ package com.jobtracker.websocket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobtracker.agent.JobAgent;
 import com.jobtracker.dto.WebSocketMessage;
+import dev.langchain4j.service.AiServices;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -46,8 +47,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         sessionManager.addSession(sessionId, session);
         log.info("WebSocket 连接已建立：sessionId={}", sessionId);
 
-        // 发送欢迎消息
-        WebSocketMessage welcomeMessage = WebSocketMessage.status("连接成功，您现在可以开始对话了");
+        // 发送欢迎消息（使用 chat 类型，前端会自动显示）
+        WebSocketMessage welcomeMessage = WebSocketMessage.chat("连接成功，您现在可以开始对话了");
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(welcomeMessage)));
     }
 
@@ -63,27 +64,38 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String sessionId = session.getId();
         String payload = message.getPayload();
 
-        log.info("收到消息：sessionId={}, message={}", sessionId, payload);
+        log.info("收到消息：sessionId={}, type=unknown, payload={}", sessionId, payload);
 
         try {
             // 解析消息
             WebSocketMessage wsMessage = objectMapper.readValue(payload, WebSocketMessage.class);
-            String userMessage = wsMessage.getContent();
+            String messageType = wsMessage.getType();
+            String content = wsMessage.getContent();
 
-            if (userMessage == null || userMessage.trim().isEmpty()) {
+            log.info("解析消息：sessionId={}, type={}, content={}", sessionId, messageType, content);
+
+            // 处理心跳消息（不调用 AI）- 支持大小写不敏感
+            if ("HEARTBEAT".equalsIgnoreCase(messageType)) {
+                log.info("收到心跳消息：sessionId={}", sessionId);
+                WebSocketMessage pongMessage = WebSocketMessage.heartbeat("pong");
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(pongMessage)));
+                return;
+            }
+
+            // 处理聊天消息
+            if (content == null || content.trim().isEmpty()) {
                 WebSocketMessage errorMessage = WebSocketMessage.error("消息内容不能为空");
                 session.sendMessage(new TextMessage(objectMapper.writeValueAsString(errorMessage)));
                 return;
             }
 
             // 调用 AI Agent
-            log.info("调用 AI Agent：sessionId={}", sessionId);
-            String aiResponse = jobAgent.chat(userMessage);
+            log.info("调用 AI Agent：sessionId={}, userMessage={}", sessionId, content);
+
+            String aiResponse = jobAgent.chat(content);
             log.info("AI 响应：sessionId={}, response={}", sessionId, aiResponse);
 
-            // 发送响应（简化版，不支持流式输出）
-            // 注意：LangChain4j 的流式输出需要使用不同的接口
-            // 这里使用非流式方式，如果需要流式可以后续升级
+            // 发送响应
             WebSocketMessage responseMessage = WebSocketMessage.chat(aiResponse);
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(responseMessage)));
 

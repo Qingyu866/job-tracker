@@ -35,17 +35,19 @@ export function TableView() {
     );
   }
 
-  if (applications.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-paper-400">
-        <div className="text-4xl mb-2">📭</div>
-        <div>暂无数据</div>
-      </div>
-    );
-  }
+  const hasData = applications.length > 0;
 
   return (
     <div className="p-4 md:p-6">
+      {/* 空数据提示 */}
+      {!hasData && (
+        <div className="mb-4 flex flex-col items-center justify-center py-8 text-paper-500 border-2 border-dashed border-paper-300 rounded-lg bg-paper-100/50">
+          <div className="text-4xl mb-2">📭</div>
+          <div className="text-sm mb-1">暂无求职申请记录</div>
+          <div className="text-xs text-paper-400">点击右下角的 + 按钮创建新申请</div>
+        </div>
+      )}
+
       {/* 桌面端表格视图 */}
       <div className="hidden md:block paper-card rounded-lg overflow-hidden">
         <table className="w-full border-collapse">
@@ -101,16 +103,17 @@ export function TableView() {
                   {app.applicationDate || '-'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-paper-500">
-                  {app.priority ? (
+                  {app.priority !== null && app.priority !== undefined ? (
                     <div className="flex items-center">
                       {[1, 2, 3].map((level) => (
                         <span
                           key={level}
                           className={`mx-0.5 text-base ${
-                            level <= (app.priority || 0)
-                              ? 'text-accent-amber'
-                              : 'text-paper-200'
+                            level <= (app.priority ?? 0)
+                              ? 'text-amber-600'
+                              : 'text-paper-300'
                           }`}
+                          title={`优先级：${app.priority}`}
                         >
                           ★
                         </span>
@@ -160,7 +163,7 @@ export function TableView() {
             </div>
 
             {/* 优先级 */}
-            {app.priority && (
+            {app.priority !== null && app.priority !== undefined && (
               <div className="mt-3 flex items-center">
                 <span className="text-xs text-paper-500 mr-2">优先级:</span>
                 <div className="flex">
@@ -168,10 +171,11 @@ export function TableView() {
                     <span
                       key={level}
                       className={`mx-0.5 text-sm ${
-                        level <= (app.priority || 0)
-                          ? 'text-accent-amber'
-                          : 'text-paper-200'
+                        level <= (app.priority ?? 0)
+                          ? 'text-amber-600'
+                          : 'text-paper-300'
                       }`}
+                      title={`优先级：${app.priority}`}
                     >
                       ★
                     </span>

@@ -67,4 +67,7 @@ public interface ApplicationLogMapper extends BaseMapper<ApplicationLog> {
      */
     @Select("SELECT * FROM application_logs WHERE logged_by = #{loggedBy} AND deleted = 0 ORDER BY created_at DESC")
     List<ApplicationLog> selectByLoggedBy(@Param("loggedBy") String loggedBy);
+
+
+
 }

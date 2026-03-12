@@ -5,8 +5,12 @@ import type { JobApplication } from '@/types';
 import { STATUS_CONFIG } from '@/utils/constants';
 import { BoardColumn } from './BoardColumn';
 
-export function BoardView() {
-  const { applications, updateApplication } = useApplicationStore();
+interface BoardViewProps {
+  isAiPanelOpen?: boolean;
+}
+
+export function BoardView({ isAiPanelOpen = true }: BoardViewProps) {
+  const { applications, updateApplicationStatus } = useApplicationStore();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -30,7 +34,7 @@ export function BoardView() {
       const newStatus = over.id as keyof typeof STATUS_CONFIG;
 
       try {
-        await updateApplication(applicationId, { status: newStatus });
+        await updateApplicationStatus(applicationId, newStatus);
       } catch (error) {
         console.error('Failed to update application status:', error);
       }
@@ -38,17 +42,18 @@ export function BoardView() {
   };
 
   return (
-    <div className="p-2 md:p-6 h-full">
+    <div className="p-2 md:p-4 h-full overflow-hidden">
       <DndContext
         sensors={sensors}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-2 md:gap-4 h-full overflow-x-auto pb-4 snap-x snap-mandatory">
+        <div className="flex gap-2 md:gap-3 h-full overflow-x-auto">
           {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map((status) => (
             <BoardColumn
               key={status}
               status={status}
               applications={groupedApplications[status]}
+              isAiPanelOpen={isAiPanelOpen}
             />
           ))}
         </div>

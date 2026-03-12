@@ -1,7 +1,9 @@
 package com.jobtracker.agent;
 
+
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
+import org.springframework.stereotype.Component;
 
 /**
  * Job Agent AI 服务接口

@@ -29,7 +29,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/data")
+@RequestMapping("/data")
 @RequiredArgsConstructor
 public class DataController {
 
@@ -254,6 +254,23 @@ public class DataController {
         } catch (Exception e) {
             log.error("获取公司列表失败", e);
             return Result.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 模糊搜索公司
+     *
+     * @param keyword 搜索关键词
+     * @return 公司列表
+     */
+    @GetMapping("/companies/search")
+    public Result<List<Company>> searchCompanies(@RequestParam String keyword) {
+        try {
+            List<Company> companies = companyService.searchByName(keyword);
+            return Result.success("查询成功", companies);
+        } catch (Exception e) {
+            log.error("搜索公司失败：keyword={}", keyword, e);
+            return Result.error("搜索失败：" + e.getMessage());
         }
     }
 

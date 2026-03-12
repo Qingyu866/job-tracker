@@ -36,7 +36,7 @@ export function BoardCard({ application }: BoardCardProps) {
       ref={setNodeRef}
       style={style}
       className={`
-        paper-card p-3 md:p-4 rounded-lg cursor-grab active:cursor-grabbing
+        paper-card p-2 md:p-3 rounded-lg cursor-grab active:cursor-grabbing
         hover:shadow-paper-md transition-all
         ${isDragging ? 'opacity-50 rotate-2' : ''}
       `}
@@ -44,8 +44,8 @@ export function BoardCard({ application }: BoardCardProps) {
       {...listeners}
     >
       {/* 公司名称首字母 */}
-      <div className="flex items-start justify-between mb-2 md:mb-3">
-        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-paper-200 flex items-center justify-center text-paper-700 font-semibold text-xs md:text-sm flex-shrink-0">
+      <div className="flex items-start justify-between mb-1.5 md:mb-2">
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-paper-200 flex items-center justify-center text-paper-700 font-semibold text-xs flex-shrink-0">
           {initials}
         </div>
         {application.priority !== undefined && application.priority > 0 && (
@@ -54,7 +54,7 @@ export function BoardCard({ application }: BoardCardProps) {
               <span
                 key={level}
                 className={`mx-0.5 text-xs ${
-                  (application.priority || 0) >= level ? 'text-accent-amber' : 'text-paper-200'
+                  (application.priority || 0) >= level ? 'text-amber-600' : 'text-paper-300'
                 }`}
               >
                 ★
@@ -65,20 +65,20 @@ export function BoardCard({ application }: BoardCardProps) {
       </div>
 
       {/* 职位信息 */}
-      <h4 className="font-serif text-paper-700 font-medium mb-1 text-sm leading-tight">
+      <h4 className="font-serif text-paper-700 font-medium mb-1 text-xs md:text-sm leading-tight line-clamp-2">
         {application.jobTitle}
       </h4>
-      <p className="text-paper-500 text-xs mb-2">{application.company?.name}</p>
+      <p className="text-paper-500 text-xs mb-2 truncate">{application.company?.name}</p>
 
       {/* 标签 */}
-      <div className="flex flex-wrap gap-1 mb-2">
+      <div className="flex flex-wrap gap-1 mb-1.5">
         {application.jobType && (
-          <span className="px-2 py-0.5 text-xs bg-paper-100 text-paper-600 rounded">
+          <span className="px-1.5 py-0.5 text-xs bg-paper-100 text-paper-600 rounded truncate max-w-full">
             {application.jobType}
           </span>
         )}
         {application.workLocation && (
-          <span className="px-2 py-0.5 text-xs bg-paper-100 text-paper-600 rounded truncate">
+          <span className="px-1.5 py-0.5 text-xs bg-paper-100 text-paper-600 rounded truncate max-w-full">
             📍 {application.workLocation}
           </span>
         )}
@@ -86,7 +86,7 @@ export function BoardCard({ application }: BoardCardProps) {
 
       {/* 申请日期 */}
       {application.applicationDate && (
-        <div className="text-xs text-paper-400 mt-2">
+        <div className="text-xs text-paper-400 mt-1.5">
           {application.applicationDate}
         </div>
       )}
