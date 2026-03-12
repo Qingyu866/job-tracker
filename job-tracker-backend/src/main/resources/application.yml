@@ -15,7 +15,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/job_tracker?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:qingyu}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
