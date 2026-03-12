@@ -239,9 +239,9 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
               onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) })}
               className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
             >
-              <option value={1}>⭐ 低优先级</option>
-              <option value={2}>⭐⭐ 中优先级</option>
-              <option value={3}>⭐⭐⭐ 高优先级</option>
+              <option value={1}>低优先级</option>
+              <option value={2}>中优先级</option>
+              <option value={3}>高优先级</option>
             </select>
           </div>
         </div>

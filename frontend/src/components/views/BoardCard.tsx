@@ -1,4 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable';
+import { MapPin } from 'lucide-react';
 import type { JobApplication } from '@/types';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -78,8 +79,9 @@ export function BoardCard({ application }: BoardCardProps) {
           </span>
         )}
         {application.workLocation && (
-          <span className="px-1.5 py-0.5 text-xs bg-paper-100 text-paper-600 rounded truncate max-w-full">
-            📍 {application.workLocation}
+          <span className="px-1.5 py-0.5 text-xs bg-paper-100 text-paper-600 rounded truncate max-w-full flex items-center gap-1">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            {application.workLocation}
           </span>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { Bell, Menu, Search, Settings, X } from 'lucide-react';
+import { Bell, Menu, Search, Settings, X, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 
 export function Header() {
@@ -8,8 +8,9 @@ export function Header() {
     <header className="h-16 border-b border-paper-200 bg-paper-50 flex items-center justify-between px-4 md:px-6 shadow-paper">
       {/* Logo */}
       <div className="flex items-center space-x-2">
+        <BookOpen className="w-5 h-5 text-paper-600" />
         <h1 className="text-base md:text-xl font-semibold text-paper-700 font-reading">
-          📖 Job Tracker
+          Job Tracker
         </h1>
       </div>
 

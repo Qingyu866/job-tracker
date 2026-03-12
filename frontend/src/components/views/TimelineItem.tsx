@@ -1,3 +1,4 @@
+import { FileText, CheckCircle, Briefcase, Trophy, XCircle, ArrowLeft, MapPin } from 'lucide-react';
 import type { JobApplication } from '@/types';
 import { STATUS_CONFIG } from '@/utils/constants';
 
@@ -6,18 +7,29 @@ interface TimelineItemProps {
   showLine?: boolean;
 }
 
-// 状态图标映射
-const STATUS_ICONS: Record<string, string> = {
-  WISHLIST: '📝',
-  APPLIED: '✅',
-  INTERVIEW: '💼',
-  OFFER: '🎉',
-  REJECTED: '❌',
-  WITHDRAWN: '🔙',
+// 状态图标组件映射
+const STATUS_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  WISHLIST: FileText,
+  APPLIED: CheckCircle,
+  INTERVIEW: Briefcase,
+  OFFER: Trophy,
+  REJECTED: XCircle,
+  WITHDRAWN: ArrowLeft,
+};
+
+// 状态图标颜色
+const STATUS_ICON_COLORS: Record<string, string> = {
+  WISHLIST: 'text-paper-500',
+  APPLIED: 'text-accent-blue',
+  INTERVIEW: 'text-accent-purple',
+  OFFER: 'text-accent-green',
+  REJECTED: 'text-accent-red',
+  WITHDRAWN: 'text-paper-400',
 };
 
 export function TimelineItem({ application, showLine = true }: TimelineItemProps) {
-  const statusIcon = STATUS_ICONS[application.status] || '📄';
+  const StatusIcon = STATUS_ICONS[application.status] || FileText;
+  const iconColor = STATUS_ICON_COLORS[application.status] || 'text-paper-500';
 
   return (
     <div className="relative pl-6 md:pl-8 pb-6 md:pb-8 last:pb-0">
@@ -28,7 +40,7 @@ export function TimelineItem({ application, showLine = true }: TimelineItemProps
 
       {/* 时间点 */}
       <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-paper-100 border-2 border-paper-300 flex items-center justify-center z-10">
-        <div className="text-xs">{statusIcon}</div>
+        <StatusIcon className={`w-3 h-3 ${iconColor}`} />
       </div>
 
       {/* 日期 */}
@@ -54,7 +66,10 @@ export function TimelineItem({ application, showLine = true }: TimelineItemProps
           {application.workLocation && (
             <div className="flex items-center text-xs text-paper-500">
               <span className="w-16 flex-shrink-0">地点:</span>
-              <span className="truncate">📍 {application.workLocation}</span>
+              <span className="truncate flex items-center gap-1">
+                <MapPin className="w-3 h-3 flex-shrink-0" />
+                {application.workLocation}
+              </span>
             </div>
           )}
           {application.salaryMin && (

@@ -1,4 +1,5 @@
 import { useApplicationStore } from '@/store/applicationStore';
+import { Inbox, MapPin, Library } from 'lucide-react';
 import { STATUS_CONFIG } from '@/utils/constants';
 
 // 状态颜色映射（牛皮纸风格）
@@ -42,7 +43,7 @@ export function TableView() {
       {/* 空数据提示 */}
       {!hasData && (
         <div className="mb-4 flex flex-col items-center justify-center py-8 text-paper-500 border-2 border-dashed border-paper-300 rounded-lg bg-paper-100/50">
-          <div className="text-4xl mb-2">📭</div>
+          <Inbox className="w-16 h-16 mb-2" />
           <div className="text-sm mb-1">暂无求职申请记录</div>
           <div className="text-xs text-paper-400">点击右下角的 + 按钮创建新申请</div>
         </div>
@@ -146,7 +147,10 @@ export function TableView() {
                 <div className="text-xs text-paper-500 mt-1">{app.jobType}</div>
               )}
               {app.company?.location && (
-                <div className="text-xs text-paper-500 mt-1">📍 {app.company.location}</div>
+                <div className="text-xs text-paper-500 mt-1 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {app.company.location}
+                </div>
               )}
             </div>
 
@@ -188,8 +192,9 @@ export function TableView() {
       </div>
 
       {/* 记录计数 */}
-      <div className="mt-4 text-sm text-paper-500 text-center">
-        📚 共 {applications.length} 条记录
+      <div className="mt-4 text-sm text-paper-500 text-center flex items-center justify-center gap-1">
+        <Library className="w-4 h-4" />
+        共 {applications.length} 条记录
       </div>
     </div>
   );

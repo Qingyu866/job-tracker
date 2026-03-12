@@ -1,5 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { Inbox } from 'lucide-react';
 import type { JobApplication } from '@/types';
 import { BoardCard } from './BoardCard';
 import { STATUS_CONFIG } from '@/utils/constants';
@@ -49,7 +50,7 @@ export function BoardColumn({ status, applications, isAiPanelOpen = true }: Boar
         ) : (
           <div className="flex items-center justify-center h-full text-paper-400">
             <div className="text-center">
-              <div className="text-2xl mb-1">📭</div>
+              <Inbox className="w-8 h-8 mx-auto mb-1" />
               <div className="text-xs">暂无申请</div>
             </div>
           </div>

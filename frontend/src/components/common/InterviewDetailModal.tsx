@@ -65,13 +65,13 @@ export function InterviewDetailModal({
         formData.rating || undefined,
         formData.feedback || undefined
       );
-      alert('✅ 面试已标记为完成！');
+      alert('面试已标记为完成！');
       setIsCompleting(false);
       onUpdate?.(); // 刷新数据
       onClose();
     } catch (error) {
       console.error('标记完成失败:', error);
-      alert('❌ 操作失败，请重试');
+      alert('操作失败，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -90,12 +90,12 @@ export function InterviewDetailModal({
       await dataApi.cancelInterview(interview.id);
       setShowCancelConfirm(false);
       setShowNoShowConfirm(false);
-      alert('✅ 面试已取消');
+      alert('面试已取消');
       onUpdate?.();
       onClose();
     } catch (error) {
       console.error('取消失败:', error);
-      alert('❌ 操作失败，请重试');
+      alert('操作失败，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -114,12 +114,12 @@ export function InterviewDetailModal({
       await dataApi.markAsNoShow(interview.id);
       setShowCancelConfirm(false);
       setShowNoShowConfirm(false);
-      alert('✅ 已标记为未参加');
+      alert('已标记为未参加');
       onUpdate?.();
       onClose();
     } catch (error) {
       console.error('操作失败:', error);
-      alert('❌ 操作失败，请重试');
+      alert('操作失败，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -140,12 +140,12 @@ export function InterviewDetailModal({
           formData.technicalQuestions
         );
       }
-      alert('✅ 保存成功！');
+      alert('保存成功！');
       setIsEditing(false);
       onUpdate?.();
     } catch (error) {
       console.error('保存失败:', error);
-      alert('❌ 保存失败，请重试');
+      alert('保存失败，请重试');
     } finally {
       setIsLoading(false);
     }

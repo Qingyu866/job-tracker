@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views, type View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { useApplicationStore } from '@/store/applicationStore';
 import type { InterviewRecord } from '@/types';
 import { InterviewDetailModal } from '@/components/common/InterviewDetailModal';
@@ -188,7 +189,7 @@ export function CalendarView() {
     console.log('[CalendarView] 空状态，无面试记录');
     return (
       <div className="flex flex-col items-center justify-center h-full text-paper-500">
-        <div className="text-4xl mb-2">📅</div>
+        <CalendarIcon className="w-16 h-16 mb-2" />
         <div className="text-sm mb-1">暂无面试安排</div>
         <div className="text-xs text-paper-400">创建求职申请后可添加面试记录</div>
       </div>

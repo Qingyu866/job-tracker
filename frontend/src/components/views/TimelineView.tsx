@@ -1,4 +1,5 @@
 import { useApplicationStore } from '@/store/applicationStore';
+import { Inbox, Library } from 'lucide-react';
 import { TimelineItem } from './TimelineItem';
 
 export function TimelineView() {
@@ -28,7 +29,7 @@ export function TimelineView() {
   if (applications.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-paper-400">
-        <div className="text-4xl mb-2">📭</div>
+        <Inbox className="w-16 h-16 mb-2" />
         <div>暂无数据</div>
       </div>
     );
@@ -54,8 +55,9 @@ export function TimelineView() {
       </div>
 
       {/* 统计信息 */}
-      <div className="mt-6 text-center text-sm text-paper-500">
-        📚 共 {applications.length} 条记录
+      <div className="mt-6 text-center text-sm text-paper-500 flex items-center justify-center gap-1">
+        <Library className="w-4 h-4" />
+        共 {applications.length} 条记录
       </div>
     </div>
   );

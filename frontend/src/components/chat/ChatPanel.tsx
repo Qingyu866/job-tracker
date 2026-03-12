@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X, ChevronRight } from 'lucide-react';
+import { X, ChevronRight, Bot } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -30,7 +30,10 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
       {/* 头部 */}
       <div className="p-4 border-b border-paper-200">
         <div className="flex items-center justify-between">
-          <h3 className="font-serif text-paper-700">🤖 AI 助手</h3>
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-paper-600" />
+            <h3 className="font-serif text-paper-700">AI 助手</h3>
+          </div>
           <div className="flex items-center space-x-2">
             <div
               className={`w-2 h-2 rounded-full ${
@@ -70,7 +73,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-paper-400">
             <div className="text-center">
-              <div className="text-4xl mb-2">🤖</div>
+              <Bot className="w-16 h-16 mx-auto mb-2" />
               <div className="text-sm">你好！我是 AI 助手</div>
               <div className="text-xs mt-1">有什么可以帮你的吗？</div>
             </div>
