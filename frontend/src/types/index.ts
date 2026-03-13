@@ -86,3 +86,20 @@ export interface WebSocketMessage {
 
 // 视图类型
 export type ViewType = 'table' | 'board' | 'timeline' | 'calendar';
+
+// P2阶段：申请详情聚合
+export interface ApplicationDetail {
+  application: JobApplication;
+  company: Company | null;
+  interviews: InterviewRecord[];
+  logs: ApplicationLog[];
+  statistics: InterviewStatistics;
+}
+
+// 面试统计
+export interface InterviewStatistics {
+  total: number;
+  completed: number;
+  scheduled: number;
+  averageRating: number;
+}

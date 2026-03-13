@@ -72,6 +72,20 @@ export const dataApi = {
     return response.data.data;
   },
 
+  /**
+   * 更新公司信息
+   */
+  updateCompany: async (id: number, data: Partial<Company>): Promise<void> => {
+    await apiClient.put(`/companies/${id}`, data);
+  },
+
+  /**
+   * 删除公司（保护性删除）
+   */
+  deleteCompany: async (id: number): Promise<void> => {
+    await apiClient.delete(`/companies/${id}`);
+  },
+
   // ========== 面试相关 ==========
 
   /**
@@ -80,6 +94,28 @@ export const dataApi = {
   getInterviews: async (): Promise<InterviewRecord[]> => {
     const response = await apiClient.get<any>('/interviews');
     return response.data.data;
+  },
+
+  /**
+   * 获取单个面试记录
+   */
+  getInterview: async (id: number): Promise<InterviewRecord> => {
+    const response = await apiClient.get<any>(`/interviews/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * 更新面试记录
+   */
+  updateInterview: async (id: number, data: Partial<InterviewRecord>): Promise<void> => {
+    await apiClient.put(`/interviews/${id}`, data);
+  },
+
+  /**
+   * 删除面试记录
+   */
+  deleteInterview: async (id: number): Promise<void> => {
+    await apiClient.delete(`/interviews/${id}`);
   },
 
   /**
@@ -192,6 +228,69 @@ export const dataApi = {
   getStatistics: async (): Promise<any[]> => {
     const response = await apiClient.get<any>('/statistics');
     return response.data.data;
+  },
+
+  // ========== P2阶段：聚合与导出 ==========
+
+  /**
+   * 获取申请详情聚合（包含公司、面试、日志、统计）
+   */
+  getApplicationDetail: async (id: number): Promise<any> => {
+    const response = await apiClient.get<any>(`/applications/${id}/detail`);
+    return response.data.data;
+  },
+
+  /**
+   * 导出 Excel 文件
+   */
+  exportExcel: (): void => {
+    window.open(`${apiClient.defaults.baseURL}/export/excel`);
+  },
+
+  /**
+   * 下载 Excel 文件（自定义处理）
+   */
+  downloadExcelBlob: async (): Promise<void> => {
+    const response = await apiClient.get('/export/excel', {
+      responseType: 'blob',
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `求职记录_${new Date().toISOString().split('T')[0]}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  /**
+   * 获取 JSON 导出数据
+   */
+  getJsonExport: async (): Promise<any[]> => {
+    const response = await apiClient.get<any>('/export/json');
+    return response.data.data;
+  },
+
+  /**
+   * 下载 JSON 文件
+   */
+  downloadJsonFile: async (): Promise<void> => {
+    const data = await dataApi.getJsonExport();
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `求职记录_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   },
 };
 
