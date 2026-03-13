@@ -47,7 +47,7 @@ export function BoardView({ isAiPanelOpen = true }: BoardViewProps) {
         sensors={sensors}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-2 md:gap-3 h-full overflow-x-auto">
+        <div className="flex gap-1 md:gap-2 h-full overflow-x-auto">
           {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map((status) => (
             <BoardColumn
               key={status}

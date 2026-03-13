@@ -16,13 +16,8 @@ export function BoardColumn({ status, applications, isAiPanelOpen = true }: Boar
     id: status,
   });
 
-  // 根据AI面板状态调整列宽
-  const columnWidth = isAiPanelOpen
-    ? 'w-48 sm:w-56 md:w-60'  // AI面板打开时：较窄
-    : 'w-56 sm:w-64 md:w-72';  // AI面板收起时：较宽
-
   return (
-    <div className={`flex-shrink-0 ${columnWidth} flex flex-col bg-paper-100/50 rounded-lg h-full`}>
+    <div className="flex-1 flex flex-col bg-paper-100/50 rounded-lg h-full min-w-[260px]">
       {/* 列标题 */}
       <div className="p-2 md:p-3 border-b border-paper-200 flex-shrink-0">
         <h3 className="font-serif text-paper-700 font-medium text-xs md:text-sm">

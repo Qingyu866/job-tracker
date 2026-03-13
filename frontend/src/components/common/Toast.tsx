@@ -1,35 +1,36 @@
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ToastProps {
+  id: number;
   message: string;
   type: 'success' | 'error' | 'info';
   duration?: number;
-  onClose?: () => void;
+  onClose?: (id: number) => void;
 }
 
-export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
+export function Toast({ id, message, type, duration = 3000, onClose }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => onClose?.(), 300); // 等待动画完成
+      setTimeout(() => onClose?.(id), 300); // 等待动画完成
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration, onClose, id]);
 
   const icons = {
-    success: <CheckCircle2 className="w-5 h-5 text-green-600" />,
-    error: <XCircle className="w-5 h-5 text-red-600" />,
-    info: <AlertCircle className="w-5 h-5 text-blue-600" />,
+    success: <CheckCircle2 className="w-5 h-5" style={{ color: '#228B22' }} />,
+    error: <XCircle className="w-5 h-5" style={{ color: '#8B4513' }} />,
+    info: <AlertCircle className="w-5 h-5" style={{ color: '#654321' }} />,
   };
 
   const bgColors = {
-    success: 'bg-green-50 border-green-200',
-    error: 'bg-red-50 border-red-200',
-    info: 'bg-blue-50 border-blue-200',
+    success: 'bg-paper-50 border-paper-400',
+    error: 'bg-paper-50 border-paper-400',
+    info: 'bg-paper-50 border-paper-400',
   };
 
   return (
@@ -37,29 +38,49 @@ export function Toast({ message, type, duration = 3000, onClose }: ToastProps) {
       className={`fixed top-4 right-4 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg border-2 shadow-lg transition-all duration-300 ${
         bgColors[type]
       } ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'}`}
+      style={{
+        fontFamily: 'Georgia, "Times New Roman", Times, serif',
+        backgroundColor: '#faf8f3',
+        borderColor: type === 'success' ? '#ddd4c0' : type === 'error' ? '#c9bd9f' : '#ddd4c0',
+      }}
     >
       {icons[type]}
-      <span className="text-sm font-medium text-gray-800">{message}</span>
+      <span className="text-sm font-medium flex-1" style={{ color: '#4a3828' }}>
+        {message}
+      </span>
+      <button
+        onClick={() => {
+          setIsVisible(false);
+          setTimeout(() => onClose?.(id), 300);
+        }}
+        className="p-1 hover:bg-paper-200 rounded transition-colors"
+        style={{ color: '#6b5344' }}
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }
 
-// 简单的 Toast 管理器
-let toastId = 0;
+// Toast 容器组件
+interface ToastContainerProps {
+  toasts: Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>;
+  onClose: (id: number) => void;
+}
 
-export const toast = {
-  success: (message: string, duration?: number) => {
-    const id = toastId++;
-    // 这里需要通过事件或其他方式来触发显示
-    // 暂时先返回 alert，后续可以实现完整的 Toast 系统
-    console.log(`[Toast Success] ${message}`);
-  },
-  error: (message: string, duration?: number) => {
-    const id = toastId++;
-    console.log(`[Toast Error] ${message}`);
-  },
-  info: (message: string, duration?: number) => {
-    const id = toastId++;
-    console.log(`[Toast Info] ${message}`);
-  },
-};
+export function ToastContainer({ toasts, onClose }: ToastContainerProps) {
+  return (
+    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+      {toasts.map((toast) => (
+        <div key={toast.id} className="pointer-events-auto">
+          <Toast
+            id={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={onClose}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
