@@ -1,0 +1,81 @@
+/* Markdown 内容样式 - 符合牛皮纸主题 */
+.prose-paper {
+  color: #4a3828;
+}
+
+.prose-paper h1,
+.prose-paper h2,
+.prose-paper h3 {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  color: #4a3828;
+}
+
+.prose-paper h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-paper h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-paper h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-paper p {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  color: #4a3828;
+  line-height: 1.6;
+}
+
+.prose-paper ul,
+.prose-paper ol {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  color: #4a3828;
+}
+
+.prose-paper li {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  color: #4a3828;
+}
+
+.prose-paper code {
+  font-family: 'Courier New', monospace;
+  background-color: #f5f0e6;
+  color: #4a3828;
+}
+
+.prose-paper pre {
+  font-family: 'Courier New', monospace;
+  background-color: #f5f0e6;
+  color: #4a3828;
+}
+
+.prose-paper a {
+  color: #7ba3b5;
+  text-decoration: underline;
+}
+
+.prose-paper a:hover {
+  color: #6b9db5;
+}
+
+.prose-paper strong {
+  color: #4a3828;
+  font-weight: 700;
+}
+
+.prose-paper blockquote {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-style: italic;
+  color: #6b5344;
+}
