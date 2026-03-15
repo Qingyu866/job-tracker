@@ -11,8 +11,19 @@ export const dataApi = {
   /**
    * 获取所有申请
    */
-  getApplications: async (): Promise<JobApplication[]> => {
-    const response = await apiClient.get<any>('/applications');
+  getApplications: async (keyword?: string): Promise<JobApplication[]> => {
+    const params = keyword ? { keyword } : {};
+    const response = await apiClient.get<any>('/applications', { params });
+    return response.data.data;
+  },
+
+  /**
+   * 搜索申请（多字段搜索）
+   */
+  searchApplications: async (keyword: string): Promise<JobApplication[]> => {
+    const response = await apiClient.get<any>('/applications/search', {
+      params: { keyword }
+    });
     return response.data.data;
   },
 

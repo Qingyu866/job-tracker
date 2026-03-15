@@ -3,6 +3,7 @@ import { apiClient } from '@/lib/apiClient';
 import type { Company } from '@/types';
 import { Search, Building2, Plus } from 'lucide-react';
 import { CreateCompanyForm } from './CreateCompanyForm';
+import { useApplicationStore } from '@/store/applicationStore';
 
 interface CompanyAutocompleteProps {
   value: string;
@@ -15,6 +16,7 @@ export function CompanyAutocomplete({
   onChange,
   placeholder = '例如：字节跳动'
 }: CompanyAutocompleteProps) {
+  const { fetchCompanies } = useApplicationStore();
   const [keyword, setKeyword] = useState(value);
   const [suggestions, setSuggestions] = useState<Company[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -83,11 +85,12 @@ export function CompanyAutocomplete({
     setShowCreateForm(true);
   };
 
-  const handleCompanyCreated = (company: Company) => {
+  const handleCompanyCreated = async (company: Company) => {
     setKeyword(company.name);
     onChange(company.name, company.id);
     setShowCreateForm(false);
     setSuggestions([]);
+    await fetchCompanies();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

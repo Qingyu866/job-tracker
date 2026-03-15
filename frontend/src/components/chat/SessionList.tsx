@@ -49,16 +49,18 @@ export function SessionList() {
             暂无历史对话
           </div>
         ) : (
-          sessions.map((session) => (
-            <SessionItem
-              key={session.sessionKey}
-              session={session}
-              isActive={session.sessionKey === currentSessionKey}
-              onSelect={() => switchSession(session.sessionKey)}
-              onDelete={() => deleteSession(session.sessionKey)}
-              formatDate={formatDate}
-            />
-          ))
+          [...sessions]
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .map((session) => (
+              <SessionItem
+                key={session.sessionKey}
+                session={session}
+                isActive={session.sessionKey === currentSessionKey}
+                onSelect={() => switchSession(session.sessionKey)}
+                onDelete={() => deleteSession(session.sessionKey)}
+                formatDate={formatDate}
+              />
+            ))
         )}
       </div>
     </div>

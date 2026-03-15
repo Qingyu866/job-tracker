@@ -151,16 +151,11 @@ class WebSocketManager {
   /**
    * 发送消息
    */
-  send(message: string): void {
+  send(message: string | object): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const data: WebSocketMessage = {
-        type: WebSocketMessageType.CHAT,
-        content: message,
-        timestamp: Date.now(),
-      };
-
-      this.ws.send(JSON.stringify(data));
-      console.log('[WebSocket] 发送消息:', message);
+      const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+      this.ws.send(messageStr);
+      console.log('[WebSocket] 发送消息:', messageStr);
     } else {
       console.error('[WebSocket] 未连接，无法发送消息');
       throw new Error('WebSocket 未连接');

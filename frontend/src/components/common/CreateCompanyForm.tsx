@@ -4,18 +4,20 @@ import type { Company } from '@/types';
 import { Building2, MapPin, Globe, Users } from 'lucide-react';
 
 interface CreateCompanyFormProps {
-  companyName: string;
+  company?: Company;
+  companyName?: string;
   onSuccess: (company: Company) => void;
   onCancel: () => void;
 }
 
-export function CreateCompanyForm({ companyName, onSuccess, onCancel }: CreateCompanyFormProps) {
+export function CreateCompanyForm({ company, companyName, onSuccess, onCancel }: CreateCompanyFormProps) {
+  const isEditMode = !!company?.id;
   const [formData, setFormData] = useState({
-    name: companyName,
-    industry: '',
-    size: '',
-    location: '',
-    website: '',
+    name: company?.name || companyName || '',
+    industry: company?.industry || '',
+    size: company?.size || '',
+    location: company?.location || '',
+    website: company?.website || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -26,12 +28,46 @@ export function CreateCompanyForm({ companyName, onSuccess, onCancel }: CreateCo
     setIsSubmitting(true);
 
     try {
-      const response = await apiClient.post<number>('/companies', formData);
-      // 获取刚创建的公司详情
-      const companyResponse = await apiClient.get<Company>(`/companies/${response.data}`);
+      console.log('[CreateCompanyForm] 开始提交表单:', formData);
+      let companyResponse;
+      
+      if (isEditMode) {
+        console.log('[CreateCompanyForm] 更新模式，公司ID:', company!.id);
+        await apiClient.put(`/companies/${company!.id}`, formData);
+        companyResponse = await apiClient.get<Company>(`/companies/${company!.id}`);
+      } else {
+        console.log('[CreateCompanyForm] 创建模式');
+        const response = await apiClient.post<number>('/companies', formData);
+        console.log('[CreateCompanyForm] 创建成功，返回ID:', response.data);
+        
+        // 检查返回的 ID 是否有效
+        const companyId = response.data;
+        if (!companyId || companyId <= 0) {
+          throw new Error('创建公司失败：无效的公司ID');
+        }
+        
+        try {
+          companyResponse = await apiClient.get<Company>(`/companies/${companyId}`);
+          console.log('[CreateCompanyForm] 获取公司详情成功:', companyResponse.data);
+        } catch (err) {
+          console.error('[CreateCompanyForm] 获取公司详情失败:', err);
+          // 如果获取详情失败，使用刚创建的数据构造一个临时公司对象
+          companyResponse = {
+            data: {
+              id: companyId,
+              ...formData,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            } as Company,
+          };
+          console.log('[CreateCompanyForm] 使用临时公司对象:', companyResponse.data);
+        }
+      }
+      
       onSuccess(companyResponse.data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : '创建公司失败';
+      console.error('[CreateCompanyForm] 提交失败:', err);
+      const message = err instanceof Error ? err.message : isEditMode ? '更新公司失败' : '创建公司失败';
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -149,11 +185,11 @@ export function CreateCompanyForm({ companyName, onSuccess, onCancel }: CreateCo
             {isSubmitting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-paper-50"></div>
-                创建中...
+                {isEditMode ? '更新中...' : '创建中...'}
               </>
             ) : (
               <>
-                ✨ 创建公司
+                {isEditMode ? '✨ 更新公司' : '✨ 创建公司'}
               </>
             )}
           </button>

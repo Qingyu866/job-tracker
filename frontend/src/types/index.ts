@@ -17,7 +17,7 @@ export interface JobApplication {
   salaryMax?: number;
   salaryCurrency?: string;
   jobUrl?: string;
-  status: 'WISHLIST' | 'APPLIED' | 'INTERVIEW' | 'OFFER' | 'REJECTED' | 'WITHDRAWN';
+  status: 'WISHLIST' | 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'FINAL_ROUND' | 'OFFERED' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'REJECTED' | 'WITHDRAWN';
   applicationDate?: string;
   priority?: number;
   notes?: string;

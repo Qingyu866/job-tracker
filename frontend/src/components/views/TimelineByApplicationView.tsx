@@ -4,6 +4,7 @@ import { useApplicationStore } from '@/store/applicationStore';
 import { TimelineEventCard } from '@/components/common/TimelineEventCard';
 import { useState } from 'react';
 import type { ApplicationLogDTO } from '@/types';
+import { STATUS_CONFIG } from '@/utils/constants';
 
 export function TimelineByApplicationView() {
   const { logs, loading, error, fetchLogs } = useApplicationStore();
@@ -130,15 +131,23 @@ export function TimelineByApplicationView() {
                       <span className={`px-2 py-1 text-xs rounded-full border ${
                         application.status === 'APPLIED'
                           ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/30'
+                          : application.status === 'SCREENING'
+                          ? 'bg-cyan-100 text-cyan-700 border-cyan-200'
                           : application.status === 'INTERVIEW'
                           ? 'bg-accent-purple/20 text-accent-purple border-accent-purple/30'
-                          : application.status === 'OFFER'
+                          : application.status === 'FINAL_ROUND'
+                          ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                          : application.status === 'OFFERED'
                           ? 'bg-accent-green/20 text-accent-green border-accent-green/30'
+                          : application.status === 'ACCEPTED'
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : application.status === 'DECLINED'
+                          ? 'bg-red-100 text-red-700 border-red-200'
                           : application.status === 'REJECTED'
                           ? 'bg-accent-red/20 text-accent-red border-accent-red/30'
                           : 'bg-paper-100 text-paper-600 border-paper-200'
                       }`}>
-                        {application.status}
+                        {STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG]?.label || application.status}
                       </span>
                     </div>
                   )}

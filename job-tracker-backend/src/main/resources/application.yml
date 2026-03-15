@@ -9,7 +9,8 @@ server:
 spring:
   application:
     name: job-tracker-backend
-
+  banner:
+    location: classpath:banner.txt
   # Database Configuration
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

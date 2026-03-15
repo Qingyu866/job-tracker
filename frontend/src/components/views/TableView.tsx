@@ -1,19 +1,41 @@
+import { useState } from 'react';
 import { useApplicationStore } from '@/store/applicationStore';
 import { Inbox, MapPin, Library } from 'lucide-react';
 import { STATUS_CONFIG } from '@/utils/constants';
+import { ApplicationDetailModal } from '@/components/common/ApplicationDetailModal';
 
 // 状态颜色映射（牛皮纸风格）
-const STATUS_CLASS_MAP = {
+const STATUS_CLASS_MAP: Record<string, string> = {
   WISHLIST: 'bg-paper-100 text-paper-600 border border-paper-200',
   APPLIED: 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30',
+  SCREENING: 'bg-cyan-100 text-cyan-700 border border-cyan-200',
   INTERVIEW: 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30',
-  OFFER: 'bg-accent-green/20 text-accent-green border border-accent-green/30',
+  FINAL_ROUND: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
+  OFFERED: 'bg-accent-green/20 text-accent-green border border-accent-green/30',
+  ACCEPTED: 'bg-green-100 text-green-700 border border-green-200',
+  DECLINED: 'bg-red-100 text-red-700 border border-red-200',
+  EXPIRED: 'bg-gray-100 text-gray-700 border border-gray-200',
   REJECTED: 'bg-accent-red/20 text-accent-red border border-accent-red/30',
   WITHDRAWN: 'bg-accent-amber/20 text-accent-amber border border-accent-amber/30',
-} as const;
+};
 
 export function TableView() {
-  const { applications, loading, error } = useApplicationStore();
+  const { applications, loading, error, fetchApplications } = useApplicationStore();
+  const [selectedApplication, setSelectedApplication] = useState<number | null>(null);
+
+  const handleApplicationClick = (applicationId: number) => {
+    setSelectedApplication(applicationId);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedApplication(null);
+  };
+
+  const handleUpdate = () => {
+    fetchApplications();
+  };
+
+  const selectedApplicationData = applications.find(app => app.id === selectedApplication) || null;
 
   if (loading) {
     return (
@@ -75,6 +97,7 @@ export function TableView() {
             {applications.map((app) => (
               <tr
                 key={app.id}
+                onClick={() => handleApplicationClick(app.id)}
                 className="hover:bg-paper-100 transition-colors cursor-pointer"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -135,6 +158,7 @@ export function TableView() {
         {applications.map((app) => (
           <div
             key={app.id}
+            onClick={() => handleApplicationClick(app.id)}
             className="paper-card rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
           >
             {/* 公司和职位 */}
@@ -196,6 +220,13 @@ export function TableView() {
         <Library className="w-4 h-4" />
         共 {applications.length} 条记录
       </div>
+
+      {/* 申请详情模态框 */}
+      <ApplicationDetailModal
+        application={selectedApplicationData}
+        onClose={handleCloseModal}
+        onUpdate={handleUpdate}
+      />
     </div>
   );
 }

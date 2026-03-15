@@ -234,4 +234,15 @@ public class ApplicationService extends ServiceImpl<ApplicationMapper, JobApplic
 
         return updateStatus(id, ApplicationStatus.WITHDRAWN.getCode());
     }
+
+    /**
+     * 多字段搜索申请
+     *
+     * @param keyword 关键词
+     * @return 申请列表
+     */
+    public List<JobApplication> searchApplications(String keyword) {
+        log.info("多字段搜索申请：keyword={}", keyword);
+        return baseMapper.searchByKeyword(keyword);
+    }
 }

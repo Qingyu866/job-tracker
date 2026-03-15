@@ -96,4 +96,21 @@ public interface ApplicationMapper extends BaseMapper<JobApplication> {
      */
     @Select("SELECT * FROM job_applications WHERE job_title LIKE CONCAT('%', #{keyword}, '%') AND deleted = 0 ORDER BY created_at DESC")
     List<JobApplication> searchByJobTitle(@Param("keyword") String keyword);
+
+    /**
+     * 多字段模糊搜索（搜索公司名、职位、工作地点、备注）
+     * 需要关联公司表查询
+     *
+     * @param keyword 关键词
+     * @return 申请列表
+     */
+    @Select("SELECT ja.* FROM job_applications ja " +
+            "LEFT JOIN companies c ON ja.company_id = c.id " +
+            "WHERE ja.deleted = 0 AND (" +
+            "  c.name LIKE CONCAT('%', #{keyword}, '%') OR " +
+            "  ja.job_title LIKE CONCAT('%', #{keyword}, '%') OR " +
+            "  ja.work_location LIKE CONCAT('%', #{keyword}, '%') OR " +
+            "  ja.notes LIKE CONCAT('%', #{keyword}, '%')" +
+            ") ORDER BY ja.created_at DESC")
+    List<JobApplication> searchByKeyword(@Param("keyword") String keyword);
 }

@@ -11,10 +11,11 @@ import java.time.LocalDateTime;
  * <p>
  * 对应数据库表：interview_records
  * 存储面试相关的详细信息，包括时间、类型、反馈等
+ * 支持多轮面试和面试结果追踪
  * </p>
  *
  * @author Job Tracker Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 @Data
@@ -42,6 +43,18 @@ public class InterviewRecord implements Serializable {
     private String interviewType;
 
     /**
+     * 面试轮次（第几轮）
+     */
+    @TableField("round_number")
+    private Integer roundNumber;
+
+    /**
+     * 是否为终面
+     */
+    @TableField("is_final")
+    private Boolean isFinal;
+
+    /**
      * 面试时间
      */
     @TableField("interview_date")
@@ -66,9 +79,16 @@ public class InterviewRecord implements Serializable {
     private Integer durationMinutes;
 
     /**
-     * 面试状态（SCHEDULED/COMPLETED/CANCELLED/NO_SHOW）
+     * 面试状态
+     * SCHEDULED/IN_PROGRESS/COMPLETED/PASSED/FAILED/CANCELLED/NO_SHOW
      */
     private String status;
+
+    /**
+     * 面试结果（通过/不通过/待定）
+     * 用于 COMPLETED 后记录评估结果
+     */
+    private String result;
 
     /**
      * 面试评分（1-5分）

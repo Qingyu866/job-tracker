@@ -7,9 +7,10 @@ interface BoardCardProps {
   application: JobApplication;
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
+  onClick?: (id: number) => void;
 }
 
-export function BoardCard({ application }: BoardCardProps) {
+export function BoardCard({ application, onClick }: BoardCardProps) {
   const {
     attributes,
     listeners,
@@ -24,6 +25,12 @@ export function BoardCard({ application }: BoardCardProps) {
     transition,
   };
 
+  const handleClick = () => {
+    if (!isDragging && onClick) {
+      onClick(application.id);
+    }
+  };
+
   // 获取公司首字母
   const initials = application.company?.name
     ?.split(' ')
@@ -36,6 +43,7 @@ export function BoardCard({ application }: BoardCardProps) {
     <div
       ref={setNodeRef}
       style={style}
+      onClick={handleClick}
       className={`
         paper-card p-2 md:p-3 rounded-lg cursor-grab active:cursor-grabbing
         hover:shadow-paper-md transition-all

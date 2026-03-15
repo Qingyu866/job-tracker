@@ -11,18 +11,27 @@ interface TimelineItemProps {
 const STATUS_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   WISHLIST: FileText,
   APPLIED: CheckCircle,
+  SCREENING: Briefcase,
   INTERVIEW: Briefcase,
-  OFFER: Trophy,
+  FINAL_ROUND: Briefcase,
+  OFFERED: Trophy,
+  ACCEPTED: Trophy,
+  DECLINED: XCircle,
+  EXPIRED: XCircle,
   REJECTED: XCircle,
   WITHDRAWN: ArrowLeft,
 };
 
-// 状态图标颜色
 const STATUS_ICON_COLORS: Record<string, string> = {
   WISHLIST: 'text-paper-500',
   APPLIED: 'text-accent-blue',
+  SCREENING: 'text-cyan-600',
   INTERVIEW: 'text-accent-purple',
-  OFFER: 'text-accent-green',
+  FINAL_ROUND: 'text-yellow-600',
+  OFFERED: 'text-accent-green',
+  ACCEPTED: 'text-green-600',
+  DECLINED: 'text-red-600',
+  EXPIRED: 'text-gray-500',
   REJECTED: 'text-accent-red',
   WITHDRAWN: 'text-paper-400',
 };
@@ -89,16 +98,24 @@ export function TimelineItem({ application, showLine = true }: TimelineItemProps
               className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                 application.status === 'APPLIED'
                   ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                  : application.status === 'SCREENING'
+                  ? 'bg-cyan-100 text-cyan-700 border border-cyan-200'
                   : application.status === 'INTERVIEW'
                   ? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/30'
-                  : application.status === 'OFFER'
+                  : application.status === 'FINAL_ROUND'
+                  ? 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                  : application.status === 'OFFERED'
                   ? 'bg-accent-green/20 text-accent-green border border-accent-green/30'
+                  : application.status === 'ACCEPTED'
+                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  : application.status === 'DECLINED'
+                  ? 'bg-red-100 text-red-700 border border-red-200'
                   : application.status === 'REJECTED'
                   ? 'bg-accent-red/20 text-accent-red border border-accent-red/30'
                   : 'bg-paper-100 text-paper-600 border border-paper-200'
               }`}
             >
-              {STATUS_CONFIG[application.status].label}
+              {STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG]?.label || application.status}
             </span>
           </div>
         </div>

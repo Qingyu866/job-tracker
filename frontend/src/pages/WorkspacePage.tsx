@@ -13,7 +13,7 @@ import { useApplicationStore } from '@/store/applicationStore';
 import { useChatStore } from '@/store/chatStore';
 
 export function WorkspacePage() {
-  const { currentView, switchView, fetchApplications } = useApplicationStore();
+  const { currentView, switchView, fetchApplications, fetchCompanies } = useApplicationStore();
   const { connect: connectWebSocket } = useChatStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(true);
@@ -22,6 +22,7 @@ export function WorkspacePage() {
   useEffect(() => {
     // 从后端获取数据
     fetchApplications();
+    fetchCompanies();
 
     // 连接 WebSocket
     connectWebSocket();
@@ -31,7 +32,7 @@ export function WorkspacePage() {
       // 如果需要自动断开，可以在这里调用 disconnect
       // useChatStore.getState().disconnect();
     };
-  }, [fetchApplications, connectWebSocket]);
+  }, [fetchApplications, fetchCompanies, connectWebSocket]);
 
   const renderView = () => {
     switch (currentView) {

@@ -1,5 +1,5 @@
 import { X, Star, Edit2, Check, XCircle, UserX } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { InterviewRecord } from '@/types';
 import { dataApi } from '@/services/dataApi';
 import { toast } from '@/store/toastStore';
@@ -25,6 +25,18 @@ export function InterviewDetailModal({
     feedback: interview?.feedback || '',
     technicalQuestions: interview?.technicalQuestions || '',
   });
+  const justSavedRef = useRef(false);
+
+  useEffect(() => {
+    if (interview && !isEditing && !justSavedRef.current) {
+      setFormData({
+        rating: interview.rating || 0,
+        feedback: interview.feedback || '',
+        technicalQuestions: interview.technicalQuestions || '',
+      });
+    }
+    justSavedRef.current = false;
+  }, [interview, isEditing]);
 
   if (!interview) return null;
 
@@ -142,8 +154,10 @@ export function InterviewDetailModal({
         );
       }
       toast.success('保存成功！');
+      
       setIsEditing(false);
       onUpdate?.();
+      onClose();
     } catch (error) {
       console.error('保存失败:', error);
       toast.error('保存失败，请重试');
@@ -294,13 +308,12 @@ export function InterviewDetailModal({
           )}
 
           {/* 评分和反馈区 */}
-          {(isCompleting || isEditing || interview.rating || interview.feedback) && (
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-paper-700 border-b-2 border-paper-300 pb-2">
-                评分与反馈
-              </h4>
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-paper-700 border-b-2 border-paper-300 pb-2">
+              评分与反馈
+            </h4>
 
-              <div className="p-4 bg-white rounded-lg border-2 border-paper-300 space-y-3">
+            <div className="p-4 bg-white rounded-lg border-2 border-paper-300 space-y-3">
                 {/* 评分 */}
                 <div>
                   <label className="text-sm text-paper-600 block mb-2">
@@ -355,7 +368,7 @@ export function InterviewDetailModal({
                 </div>
               </div>
             </div>
-          )}
+          
 
           {/* 备注 */}
           {interview.notes && !isCompleting && (

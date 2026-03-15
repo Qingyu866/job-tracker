@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { webSocketManager } from '@/lib/webSocketManager';
 import { chatApi } from '@/services/chatApi';
-import type { ChatSession, ServerChatMessage } from '@/types/chat';
+import type { ChatSession } from '@/types/chat';
 
 export interface ChatMessage {
   id?: number;
@@ -16,46 +16,76 @@ interface ChatStore {
   isTyping: boolean;
   panelWidth: number;
   isPanelOpen: boolean;
-
-  // 新增：会话管理
   sessions: ChatSession[];
   currentSessionKey: string;
   isLoadingHistory: boolean;
+  isInitialized: boolean;
 
-  // 操作
   sendMessage: (content: string) => Promise<void>;
   clearHistory: () => void;
   togglePanel: () => void;
   setPanelWidth: (width: number) => void;
   connect: () => void;
   disconnect: () => void;
-
-  // 新增：会话操作
-  loadSessions: () => Promise<void>;
+  loadSessions: () => Promise<ChatSession[]>;
   loadHistory: (sessionKey: string) => Promise<void>;
   switchSession: (sessionKey: string) => Promise<void>;
   deleteSession: (sessionKey: string) => Promise<void>;
-  createNewSession: () => void;
+  createNewSession: () => Promise<void>;
+  initializeSession: () => Promise<void>;
 }
 
-// 默认会话标识
-const DEFAULT_SESSION_KEY = 'default-session';
+const STORAGE_KEY = 'chat_current_session_key';
+
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function getPersistedSessionKey(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('[ChatStore] 无法读取本地存储的会话ID:', error);
+    return null;
+  }
+}
+
+function persistSessionKey(sessionKey: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, sessionKey);
+  } catch (error) {
+    console.warn('[ChatStore] 无法保存会话ID到本地存储:', error);
+  }
+}
+
+function clearPersistedSessionKey(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('[ChatStore] 无法清除本地存储的会话ID:', error);
+  }
+}
 
 export const useChatStore = create<ChatStore>((set, get) => ({
-  // 初始状态
   messages: [],
   isConnected: false,
   isTyping: false,
   panelWidth: 400,
   isPanelOpen: true,
   sessions: [],
-  currentSessionKey: DEFAULT_SESSION_KEY,
+  currentSessionKey: '',
   isLoadingHistory: false,
+  isInitialized: false,
 
-  // 发送消息
   sendMessage: async (content: string) => {
     try {
-      // 添加用户消息到列表
       const userMessage: ChatMessage = {
         role: 'user',
         content,
@@ -63,17 +93,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       };
       set({ messages: [...get().messages, userMessage], isTyping: true });
 
-      // 通过 WebSocket 发送消息，携带 sessionId
-      webSocketManager.send(JSON.stringify({
+      webSocketManager.send({
         type: 'CHAT',
         content,
         sessionId: get().currentSessionKey,
-      }));
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : '发送消息失败';
       console.error('[ChatStore] 发送消息失败:', error);
 
-      // 添加错误消息
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: `发送失败: ${message}`,
@@ -83,28 +111,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  // 清空历史
   clearHistory: () => {
     set({ messages: [] });
   },
 
-  // 切换面板
   togglePanel: () => {
     set({ isPanelOpen: !get().isPanelOpen });
   },
 
-  // 设置面板宽度
   setPanelWidth: (width) => {
     set({ panelWidth: width });
   },
 
-  // 连接 WebSocket
   connect: () => {
-    // 注册消息处理
     webSocketManager.onMessage((data) => {
       console.log('[ChatStore] 收到消息:', data);
 
-      // 添加 AI 回复到列表
       const aiMessage: ChatMessage = {
         role: 'assistant',
         content: data.content || data.message || '抱歉，我没有理解您的意思。',
@@ -117,50 +139,44 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       });
     });
 
-    // 注册连接成功处理
     webSocketManager.onOpen(() => {
       console.log('[ChatStore] WebSocket 连接成功');
       set({ isConnected: true });
     });
 
-    // 注册错误处理
     webSocketManager.onError((error) => {
       console.error('[ChatStore] WebSocket 错误:', error);
     });
 
-    // 注册关闭处理
     webSocketManager.onClose(() => {
       console.log('[ChatStore] WebSocket 连接关闭');
       set({ isConnected: false });
     });
 
-    // 开始连接
     webSocketManager.connect();
   },
 
-  // 断开连接
   disconnect: () => {
     webSocketManager.disconnect();
     set({ isConnected: false });
   },
 
-  // 新增：加载会话列表
   loadSessions: async () => {
     try {
       const sessions = await chatApi.getSessions();
       set({ sessions });
+      return sessions;
     } catch (error) {
       console.error('[ChatStore] 加载会话列表失败:', error);
+      return [];
     }
   },
 
-  // 新增：加载历史消息
   loadHistory: async (sessionKey: string) => {
     set({ isLoadingHistory: true });
     try {
       const serverMessages = await chatApi.getSessionMessages(sessionKey);
 
-      // 转换为前端消息格式
       const messages: ChatMessage[] = serverMessages.map((msg) => ({
         id: msg.id,
         role: msg.role.toLowerCase() as 'user' | 'assistant',
@@ -173,39 +189,121 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         currentSessionKey: sessionKey,
         isLoadingHistory: false,
       });
+
+      persistSessionKey(sessionKey);
     } catch (error) {
       console.error('[ChatStore] 加载历史消息失败:', error);
       set({ isLoadingHistory: false });
     }
   },
 
-  // 新增：切换会话
   switchSession: async (sessionKey: string) => {
     await get().loadHistory(sessionKey);
   },
 
-  // 新增：删除会话
   deleteSession: async (sessionKey: string) => {
     try {
       await chatApi.deleteSession(sessionKey);
-      // 刷新会话列表
       await get().loadSessions();
 
-      // 如果删除的是当前会话，切换到默认会话
       if (get().currentSessionKey === sessionKey) {
-        set({ messages: [], currentSessionKey: DEFAULT_SESSION_KEY });
+        clearPersistedSessionKey();
+        set({ messages: [], currentSessionKey: '' });
       }
     } catch (error) {
       console.error('[ChatStore] 删除会话失败:', error);
     }
   },
 
-  // 新增：创建新会话
-  createNewSession: () => {
-    const newSessionKey = `session-${Date.now()}`;
-    set({
-      messages: [],
-      currentSessionKey: newSessionKey,
-    });
+  createNewSession: async () => {
+    try {
+      const newSession = await chatApi.createSession();
+      set({
+        messages: [],
+        currentSessionKey: newSession.sessionKey,
+      });
+      persistSessionKey(newSession.sessionKey);
+      await get().loadSessions();
+    } catch (error) {
+      console.error('[ChatStore] 创建新会话失败:', error);
+      const fallbackKey = generateUUID();
+      set({
+        messages: [],
+        currentSessionKey: fallbackKey,
+      });
+      persistSessionKey(fallbackKey);
+    }
+  },
+
+  initializeSession: async () => {
+    if (get().isInitialized) {
+      return;
+    }
+
+    try {
+      const sessions = await get().loadSessions();
+
+      const persistedKey = getPersistedSessionKey();
+
+      if (persistedKey) {
+        const sessionExists = sessions.some(s => s.sessionKey === persistedKey);
+        
+        if (sessionExists) {
+          console.log('[ChatStore] 恢复持久化的会话:', persistedKey);
+          await get().loadHistory(persistedKey);
+          set({ isInitialized: true });
+          return;
+        }
+      }
+
+      if (sessions.length > 0) {
+        const sortedSessions = [...sessions].sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+        
+        const mostRecentSession = sortedSessions[0];
+        console.log('[ChatStore] 使用最近的会话:', mostRecentSession.sessionKey);
+        await get().loadHistory(mostRecentSession.sessionKey);
+      } else {
+        console.log('[ChatStore] 没有历史会话，创建新会话');
+        try {
+          const newSession = await chatApi.createSession();
+          console.log('[ChatStore] 新会话已创建:', newSession.sessionKey);
+          set({ 
+            currentSessionKey: newSession.sessionKey,
+            isInitialized: true 
+          });
+          persistSessionKey(newSession.sessionKey);
+          await get().loadSessions();
+        } catch (createError) {
+          console.error('[ChatStore] 创建会话失败:', createError);
+          const fallbackKey = generateUUID();
+          set({ 
+            currentSessionKey: fallbackKey,
+            isInitialized: true 
+          });
+          persistSessionKey(fallbackKey);
+        }
+      }
+    } catch (error) {
+      console.error('[ChatStore] 初始化会话失败:', error);
+      try {
+        console.log('[ChatStore] 尝试创建新会话作为降级方案');
+        const newSession = await chatApi.createSession();
+        set({ 
+          currentSessionKey: newSession.sessionKey,
+          isInitialized: true 
+        });
+        persistSessionKey(newSession.sessionKey);
+      } catch (fallbackError) {
+        console.error('[ChatStore] 降级创建会话也失败:', fallbackError);
+        const emergencyKey = generateUUID();
+        set({ 
+          currentSessionKey: emergencyKey,
+          isInitialized: true 
+        });
+        persistSessionKey(emergencyKey);
+      }
+    }
   },
 }));

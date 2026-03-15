@@ -18,7 +18,8 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     isConnected,
     isLoadingHistory,
     loadSessions,
-    currentSessionKey,
+    initializeSession,
+    isInitialized,
   } = useChatStore();
 
   const [showSessions, setShowSessions] = useState(false);
@@ -32,27 +33,29 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     scrollToBottom();
   }, [messages]);
 
-  // 初始化时加载会话列表
   useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+    const init = async () => {
+      await loadSessions();
+      await initializeSession();
+    };
+    init();
+  }, [loadSessions, initializeSession]);
 
   const handleSend = async (content: string) => {
     await sendMessage(content);
   };
 
+  const isLoading = isLoadingHistory || !isInitialized;
+
   return (
     <div className="flex h-full bg-paper-50">
-      {/* 会话列表面板（可折叠） */}
       {showSessions && (
         <div className="w-48 border-r border-paper-200 flex-shrink-0 bg-paper-100">
           <SessionList />
         </div>
       )}
 
-      {/* 主聊天区域 */}
       <div className="flex flex-col flex-1 min-w-0">
-        {/* 头部 */}
         <div className="p-4 border-b border-paper-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -79,7 +82,6 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
               <span className="text-xs text-paper-500 hidden sm:inline">
                 {isConnected ? '已连接' : '未连接'}
               </span>
-              {/* 桌面端收起按钮 */}
               {onClose && (
                 <button
                   onClick={onClose}
@@ -90,7 +92,6 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
                   <ChevronRight className="w-5 h-5" />
                 </button>
               )}
-              {/* 移动端关闭按钮 */}
               {onClose && (
                 <button
                   onClick={onClose}
@@ -104,11 +105,10 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           </div>
         </div>
 
-        {/* 消息列表 */}
         <div className="flex-1 overflow-y-auto p-4">
-          {isLoadingHistory ? (
+          {isLoading ? (
             <div className="flex items-center justify-center h-full text-paper-400">
-              <div className="text-sm">加载历史消息中...</div>
+              <div className="text-sm">加载中...</div>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-paper-400">
@@ -120,8 +120,8 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
             </div>
           ) : (
             <>
-              {messages.map((msg) => (
-                <ChatMessage key={msg.timestamp} message={msg} />
+              {messages.map((msg, index) => (
+                <ChatMessage key={msg.timestamp || index} message={msg} />
               ))}
               {isTyping && (
                 <div className="flex justify-start mb-4">
@@ -137,7 +137,6 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
           )}
         </div>
 
-        {/* 输入框 */}
         <div className="p-4 border-t border-paper-200">
           <ChatInput onSend={handleSend} disabled={!isConnected} />
         </div>

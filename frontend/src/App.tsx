@@ -1,5 +1,6 @@
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { WorkspacePage } from './pages/WorkspacePage';
+import { CompanyManagementPage } from './pages/CompanyManagementPage';
 import { ToastContainer } from './components/common/Toast';
 import { useToastStore } from './store/toastStore';
 
@@ -8,7 +9,10 @@ function App() {
 
   return (
     <BrowserRouter>
-      <WorkspacePage />
+      <Routes>
+        <Route path="/" element={<WorkspacePage />} />
+        <Route path="/companies" element={<CompanyManagementPage />} />
+      </Routes>
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </BrowserRouter>
   );

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { JobApplication, Company, InterviewRecord, ApplicationLogDTO, ViewType } from '@/types';
 import { apiClient } from '@/lib/apiClient';
+import { dataApi } from '@/services/dataApi';
 
 interface ApplicationStore {
   // 状态
@@ -18,15 +19,18 @@ interface ApplicationStore {
   error: string | null;
 
   // 操作
-  fetchApplications: () => Promise<void>;
+  fetchApplications: (keyword?: string) => Promise<void>;
+  fetchCompanies: () => Promise<void>;
   fetchInterviews: () => Promise<void>;
   fetchLogs: () => Promise<void>;
   createApplication: (data: Partial<JobApplication>) => Promise<number>;
   updateApplication: (id: number, data: Partial<JobApplication>) => Promise<void>;
   updateApplicationStatus: (id: number, status: string) => Promise<void>;
   deleteApplication: (id: number) => Promise<void>;
+  deleteCompany: (id: number) => Promise<void>;
   switchView: (view: ViewType) => void;
   setFilters: (filters: Partial<ApplicationStore['filters']>) => void;
+  setKeyword: (keyword: string) => Promise<void>;
 }
 
 export const useApplicationStore = create<ApplicationStore>((set, get) => ({
@@ -41,28 +45,40 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   error: null,
 
   // 获取申请列表
-  fetchApplications: async () => {
+  fetchApplications: async (keyword?: string) => {
     set({ loading: true, error: null });
     try {
-      // 同时获取申请和公司
-      const [appsResponse, companiesResponse] = await Promise.all([
-        apiClient.get<JobApplication[]>('/applications'),
-        apiClient.get<Company[]>('/companies')
-      ]);
+      let applications: JobApplication[];
+      
+      if (keyword && keyword.trim() !== '') {
+        applications = await dataApi.searchApplications(keyword);
+      } else {
+        applications = await dataApi.getApplications();
+      }
 
-      const applications = appsResponse.data || [];
-      const companies = companiesResponse.data || [];
+      const companies = await dataApi.getCompanies();
 
-      // 为每个申请关联公司信息
       const applicationsWithCompany = applications.map(app => ({
         ...app,
-        company: companies.find(c => c.id === app.companyId) || null
+        company: companies.find(c => c.id === app.companyId) || undefined
       }));
 
       set({ applications: applicationsWithCompany, companies, loading: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : '获取申请列表失败';
       set({ error: message, loading: false, applications: [] });
+    }
+  },
+
+  // 获取公司列表
+  fetchCompanies: async () => {
+    set({ loading: true, error: null });
+    try {
+      const companies = await dataApi.getCompanies();
+      set({ companies, loading: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '获取公司列表失败';
+      set({ error: message, loading: false, companies: [] });
     }
   },
 
@@ -143,6 +159,19 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     }
   },
 
+  // 删除公司
+  deleteCompany: async (id: number) => {
+    try {
+      await apiClient.delete(`/companies/${id}`);
+      // 刷新公司列表
+      await get().fetchCompanies();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '删除失败';
+      set({ error: message });
+      throw error;
+    }
+  },
+
   // 切换视图
   switchView: (view) => {
     set({ currentView: view });
@@ -151,5 +180,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   // 设置筛选
   setFilters: (filters) => {
     set({ filters: { ...get().filters, ...filters } });
+  },
+
+  // 设置搜索关键词并执行后端搜索
+  setKeyword: async (keyword: string) => {
+    set({ filters: { ...get().filters, keyword } });
+    await get().fetchApplications(keyword);
   },
 }));
