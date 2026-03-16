@@ -123,4 +123,48 @@ public class JobApplication implements Serializable {
      */
     @TableLogic
     private Integer deleted;
+
+    // ==================== 模拟面试相关字段（需要执行 V9 迁移脚本后生效）====================
+
+    /**
+     * 关联的简历ID
+     */
+    @TableField("resume_id")
+    private Long resumeId;
+
+    /**
+     * 岗位级别：JUNIOR/MIDDLE/SENIOR/LEAD
+     */
+    @TableField("seniority_level")
+    private String seniorityLevel;
+
+    /**
+     * 简历快照（面试时的简历状态）
+     */
+    @TableField("resume_snapshot")
+    private String resumeSnapshot;
+
+    /**
+     * 岗位技能要求（从JD解析或手动添加）
+     */
+    @TableField("skills_required")
+    private String skillsRequired;
+
+    /**
+     * 是否已准备模拟面试
+     */
+    @TableField("interview_prepared")
+    private Boolean interviewPrepared;
+
+    /**
+     * 模拟面试次数
+     */
+    @TableField("mock_interview_count")
+    private Integer mockInterviewCount;
+
+    /**
+     * 最佳模拟面试成绩
+     */
+    @TableField("best_mock_score")
+    private java.math.BigDecimal bestMockScore;
 }

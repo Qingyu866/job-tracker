@@ -88,3 +88,28 @@ langchain4j:
   # Chat Memory Configuration
   chat-memory:
     window-size: 20
+
+# OCR Configuration
+ocr:
+  # 启用 OCR 功能
+  enabled: true
+
+  # 默认 OCR 提供商
+  default-provider: ZHIPU  # ZHIPU / LOCAL
+
+  # 智谱 OCR 配置
+  zhipu:
+    api-url: https://open.bigmodel.cn/api/paas/v4/ocr
+    api-key: ${ZHIPU_API_KEY:}
+    timeout: 30000  # 30秒超时
+    max-retries: 1  # 失败重试次数
+
+  # 本地降级配置
+  fallback:
+    enable-local-model: true  # 启用本地模型降级
+    local-model-confidence: 0.6  # 本地模型最低置信度
+
+  # 图片限制
+  limits:
+    max-image-size: 10485760  # 10MB
+    supported-formats: jpg,jpeg,png,pdf

@@ -4,6 +4,7 @@ import com.jobtracker.agent.memory.SafeTurnBasedChatMemoryProvider;
 import com.jobtracker.agent.tools.ApplicationTools;
 import com.jobtracker.agent.tools.CompanyTools;
 import com.jobtracker.agent.tools.InterviewTools;
+import com.jobtracker.agent.tools.command.OcrCommandTools;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -50,6 +51,7 @@ public class JobAgentFactory {
     private final ApplicationTools applicationTools;
     private final InterviewTools interviewTools;
     private final CompanyTools companyTools;
+    private final OcrCommandTools ocrCommandTools;
 
     /**
      * 为指定会话创建 JobAgent
@@ -72,7 +74,7 @@ public class JobAgentFactory {
                 .chatModel(chatModel)
                 .chatMemory(chatMemory)  // 使用独立的 ChatMemory
                 // 注册所有工具
-                .tools(applicationTools, interviewTools, companyTools)
+                .tools(applicationTools, interviewTools, companyTools, ocrCommandTools)
                 .build();
     }
 
