@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Inbox } from 'lucide-react';
 import { useApplicationStore } from '@/store/applicationStore';
 import { TimelineEventCard } from '@/components/common/TimelineEventCard';
-import type { ApplicationLogDTO } from '@/types';
 
 export function TimelineFeedView() {
   const { logs, loading, error, fetchLogs } = useApplicationStore();

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.jobtracker.entity.ChatMessage;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,5 +31,27 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessage> {
         return selectList(new LambdaQueryWrapper<ChatMessage>()
                 .eq(ChatMessage::getSessionId, sessionId)
                 .orderByAsc(ChatMessage::getCreatedAt));
+    }
+
+    /**
+     * 查询会话最近的 N 条消息（按时间升序）
+     * <p>
+     * 用于从数据库加载历史消息到 ChatMemory
+     * </p>
+     *
+     * @param sessionId 会话ID
+     * @param limit     限制条数
+     * @return 消息列表（按时间升序）
+     */
+    default List<ChatMessage> selectRecentMessages(Long sessionId, int limit) {
+        // 先倒序查询最近的 N 条，然后反转成正序
+        List<ChatMessage> messages = selectList(new LambdaQueryWrapper<ChatMessage>()
+                .eq(ChatMessage::getSessionId, sessionId)
+                .orderByDesc(ChatMessage::getCreatedAt)
+                .last("LIMIT " + limit));
+
+        // 反转成升序
+        Collections.reverse(messages);
+        return messages;
     }
 }

@@ -37,38 +37,31 @@ public class InterviewCommandTools {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     /**
-     * 创建面试记录（关键字优先）
+     * 创建面试记录（快速创建）
      */
     @Tool("""
-        [创建] 为求职申请创建面试记录
+        [创建] 为求职申请创建面试记录（快速创建）
 
         适用场景：
-        - 用户说"帮我给字节跳动的申请添加一个面试"
+        - 用户说"给字节跳动的申请加个面试，明天下午2点"
         - 用户说"阿里巴巴下周二有面试"
 
-        参数：
-        - keyword: 公司名称或职位关键词（必填）
+        必填参数：
+        - keyword: 公司名称或职位关键词（用于匹配申请）
           例如："字节跳动"、"前端工程师"、"字节-前端"
-        - interviewType: 面试类型（可选）
-          PHONE/VIDEO/ONSITE/TECHNICAL/HR，默认 TECHNICAL
-        - interviewDate: 面试时间（必填）
-          格式：yyyy-MM-dd HH:mm，如 "2026-03-15 14:00"
-          如果只传日期，默认 09:00
-        - interviewerName: 面试官姓名（可选）
-        - interviewerTitle: 面试官职位（可选）
-        - durationMinutes: 面试时长（分钟，可选）
+        - interviewDate: 面试时间（格式：yyyy-MM-dd HH:mm，如"2026-03-15 14:00"）
+                          支持自然语言描述（如"明天下午2点"）
 
-        返回：创建结果
+        说明：
+        - 默认面试类型为"技术面试"
+        - 其他信息（面试官等）可通过更新工具补充
+        - 返回：创建结果
         """)
     public ToolResult createInterview(
             String keyword,
-            String interviewType,
-            String interviewDate,
-            String interviewerName,
-            String interviewerTitle,
-            Integer durationMinutes
+            String interviewDate
     ) {
-        log.info("AI调用：创建面试 keyword={}, type={}, date={}", keyword, interviewType, interviewDate);
+        log.info("AI调用：创建面试 keyword={}, date={}", keyword, interviewDate);
 
         if (keyword == null || keyword.isBlank()) {
             return ToolResult.error(ToolConstants.ERR_PARAM_MISSING, "请提供公司名称或职位关键词");
@@ -104,13 +97,13 @@ public class InterviewCommandTools {
                 return ToolResult.error(ToolConstants.ERR_PROTECTED, reason);
             }
 
-            // 创建面试记录
+            // 创建面试记录（使用默认值）
             InterviewRecord record = new InterviewRecord();
             record.setApplicationId(app.getId());
-            record.setInterviewType(interviewType != null ? interviewType : ToolConstants.INTERVIEW_TYPE_TECHNICAL);
-            record.setInterviewerName(interviewerName);
-            record.setInterviewerTitle(interviewerTitle);
-            record.setDurationMinutes(durationMinutes);
+            record.setInterviewType(ToolConstants.INTERVIEW_TYPE_TECHNICAL);  // 默认技术面试
+            record.setInterviewerName(null);
+            record.setInterviewerTitle(null);
+            record.setDurationMinutes(null);
             record.setStatus(ToolConstants.INTERVIEW_SCHEDULED);
 
             // 解析时间

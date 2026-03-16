@@ -1,5 +1,5 @@
 import apiClient from './api';
-import type { JobApplication, Company, InterviewRecord, ApplicationLog, ApplicationLogDTO } from '@/types';
+import type { JobApplication, Company, InterviewRecord, ApplicationLogDTO } from '@/types';
 
 /**
  * 数据 API 服务

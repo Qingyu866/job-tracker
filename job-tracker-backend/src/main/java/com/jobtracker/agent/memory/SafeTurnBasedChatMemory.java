@@ -114,6 +114,18 @@ public class SafeTurnBasedChatMemory implements ChatMemory {
         return new ArrayList<>(messages);
     }
 
+    /**
+     * 获取可修改的消息列表（用于消息序列修复）
+     * <p>
+     * 注意：直接返回内部列表，调用方需要谨慎修改
+     * </p>
+     *
+     * @return 消息列表
+     */
+    List<ChatMessage> getMessages() {
+        return messages;
+    }
+
     @Override
     public void clear() {
         messages.clear();

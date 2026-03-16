@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -37,38 +36,28 @@ public class ApplicationCommandTools {
     private final ToolHelper toolHelper;
 
     /**
-     * 创建求职申请
+     * 创建求职申请（快速创建，仅需基本信息）
      */
     @Tool("""
-        [创建] 新建求职申请
+        [创建] 新建求职申请（快速创建，仅需基本信息）
 
-        适用场景：用户想要记录一个新的求职申请
+        适用场景：
+        - 用户说"帮我创建字节跳动的申请"
+        - 用户说"添加一个阿里巴巴前端工程师的申请"
 
         必填参数：
         - companyName: 公司名称
         - jobTitle: 职位名称
 
-        可选参数：
-        - jobType: 工作类型 FULL_TIME/PART_TIME/CONTRACT/INTERNSHIP
-        - workLocation: 工作地点
-        - salaryMin: 薪资下限（数字）
-        - salaryMax: 薪资上限（数字）
-        - status: 初始状态 WISHLIST（默认）/APPLIED
-        - priority: 优先级 1-10（默认5）
-        - notes: 备注信息
-
-        返回：创建结果，包含新申请ID
+        说明：
+        - 创建后默认状态为"愿望清单"
+        - 默认优先级为 5（中等）
+        - 其他信息（薪资、地点等）可通过更新工具补充
+        - 返回：创建结果，包含新申请ID
         """)
     public ToolResult createApplication(
             String companyName,
-            String jobTitle,
-            String jobType,
-            String workLocation,
-            BigDecimal salaryMin,
-            BigDecimal salaryMax,
-            String status,
-            Integer priority,
-            String notes
+            String jobTitle
     ) {
         log.info("AI调用：创建申请 company={}, job={}", companyName, jobTitle);
 
@@ -89,21 +78,17 @@ public class ApplicationCommandTools {
                 log.info("自动创建公司：{}", companyName);
             }
 
-            // 创建申请
+            // 创建申请（使用默认值）
             JobApplication app = new JobApplication();
             app.setCompanyId(company.getId());
             app.setJobTitle(jobTitle);
-            app.setJobType(jobType);
-            app.setWorkLocation(workLocation);
-            app.setSalaryMin(salaryMin);
-            app.setSalaryMax(salaryMax);
-            app.setStatus(status != null ? status : ToolConstants.STATUS_WISHLIST);
-            app.setPriority(priority != null ? priority : ToolConstants.DEFAULT_PRIORITY);
-            app.setNotes(notes);
-
-            if (ToolConstants.STATUS_APPLIED.equals(app.getStatus())) {
-                app.setApplicationDate(LocalDate.now());
-            }
+            app.setStatus(ToolConstants.STATUS_WISHLIST);        // 默认愿望清单
+            app.setPriority(ToolConstants.DEFAULT_PRIORITY);     // 默认优先级5
+            app.setJobType(null);
+            app.setWorkLocation(null);
+            app.setSalaryMin(null);
+            app.setSalaryMax(null);
+            app.setNotes(null);
 
             applicationService.save(app);
 

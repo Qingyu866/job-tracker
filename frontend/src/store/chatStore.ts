@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { webSocketManager } from '@/lib/webSocketManager';
 import { chatApi } from '@/services/chatApi';
-import type { ChatSession } from '@/types/chat';
+import type { ChatSession, ImageAttachment, WebSocketMessage } from '@/types/chat';
 
 export interface ChatMessage {
   id?: number;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  images?: ImageAttachment[];
+  pending?: boolean;
 }
 
 interface ChatStore {
@@ -20,8 +22,9 @@ interface ChatStore {
   currentSessionKey: string;
   isLoadingHistory: boolean;
   isInitialized: boolean;
+  pendingRefresh: boolean;
 
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, images?: ImageAttachment[]) => Promise<void>;
   clearHistory: () => void;
   togglePanel: () => void;
   setPanelWidth: (width: number) => void;
@@ -83,21 +86,38 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   currentSessionKey: '',
   isLoadingHistory: false,
   isInitialized: false,
+  pendingRefresh: false,
 
-  sendMessage: async (content: string) => {
+  sendMessage: async (content: string, images: ImageAttachment[] = []) => {
     try {
+      const hasImages = images.length > 0;
+      console.log('[ChatStore] 发送消息，是否有图片:', hasImages, '图片数量:', images.length);
+      
       const userMessage: ChatMessage = {
         role: 'user',
         content,
         timestamp: Date.now(),
+        images: hasImages ? images : undefined,
       };
-      set({ messages: [...get().messages, userMessage], isTyping: true });
+      
+      set({ 
+        messages: [...get().messages, userMessage], 
+        isTyping: true, 
+        pendingRefresh: hasImages 
+      });
 
-      webSocketManager.send({
+      console.log('[ChatStore] 设置 pendingRefresh 为:', hasImages);
+
+      const imageIds = hasImages ? images.map(img => img.id) : undefined;
+
+      const wsMessage: WebSocketMessage = {
         type: 'CHAT',
         content,
         sessionId: get().currentSessionKey,
-      });
+        imageIds,
+      };
+
+      webSocketManager.send(wsMessage);
     } catch (error) {
       const message = error instanceof Error ? error.message : '发送消息失败';
       console.error('[ChatStore] 发送消息失败:', error);
@@ -107,7 +127,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         content: `发送失败: ${message}`,
         timestamp: Date.now(),
       };
-      set({ messages: [...get().messages, errorMessage], isTyping: false });
+      set({ messages: [...get().messages, errorMessage], isTyping: false, pendingRefresh: false });
     }
   },
 
@@ -124,8 +144,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   connect: () => {
-    webSocketManager.onMessage((data) => {
+    webSocketManager.onMessage(async (data) => {
       console.log('[ChatStore] 收到消息:', data);
+      console.log('[ChatStore] 当前 pendingRefresh 状态:', get().pendingRefresh);
 
       const aiMessage: ChatMessage = {
         role: 'assistant',
@@ -137,6 +158,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         messages: [...get().messages, aiMessage],
         isTyping: false,
       });
+
+      console.log('[ChatStore] 添加 AI 消息后，pendingRefresh 状态:', get().pendingRefresh);
+
+      if (get().pendingRefresh) {
+        console.log('[ChatStore] 检测到待刷新标记，准备重新加载历史消息');
+        set({ pendingRefresh: false });
+        
+        setTimeout(async () => {
+          console.log('[ChatStore] 开始重新加载历史消息，sessionKey:', get().currentSessionKey);
+          await get().loadHistory(get().currentSessionKey);
+          console.log('[ChatStore] 历史消息重新加载完成');
+        }, 100);
+      }
     });
 
     webSocketManager.onOpen(() => {
@@ -173,16 +207,36 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   loadHistory: async (sessionKey: string) => {
+    console.log('[ChatStore] 开始加载历史消息，sessionKey:', sessionKey);
     set({ isLoadingHistory: true });
     try {
-      const serverMessages = await chatApi.getSessionMessages(sessionKey);
+      const serverMessages = await chatApi.getSessionMessagesWithImages(sessionKey);
+      console.log('[ChatStore] 从服务器获取到消息数量:', serverMessages.length);
 
-      const messages: ChatMessage[] = serverMessages.map((msg) => ({
-        id: msg.id,
-        role: msg.role.toLowerCase() as 'user' | 'assistant',
-        content: msg.content,
-        timestamp: new Date(msg.createdAt).getTime(),
-      }));
+      const messages: ChatMessage[] = serverMessages.map((msg) => {
+        let content = msg.content;
+        
+        if (content.startsWith('{') && content.includes('"content"')) {
+          try {
+            const parsed = JSON.parse(content);
+            if (parsed.content && typeof parsed.content === 'string') {
+              content = parsed.content;
+            }
+          } catch {
+            // 解析失败，保持原样
+          }
+        }
+        
+        return {
+          id: msg.id,
+          role: msg.role.toLowerCase() as 'user' | 'assistant',
+          content,
+          timestamp: new Date(msg.createdAt).getTime(),
+          images: msg.images && msg.images.length > 0 ? msg.images : undefined,
+        };
+      });
+
+      console.log('[ChatStore] 转换后的消息数量:', messages.length);
 
       set({
         messages,
@@ -191,6 +245,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       });
 
       persistSessionKey(sessionKey);
+      console.log('[ChatStore] 历史消息加载完成');
     } catch (error) {
       console.error('[ChatStore] 加载历史消息失败:', error);
       set({ isLoadingHistory: false });

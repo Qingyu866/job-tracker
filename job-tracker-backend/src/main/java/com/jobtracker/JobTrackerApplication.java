@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Job Tracker Backend Application
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @SpringBootApplication
 @ComponentScan(basePackages = "com.jobtracker")
+@EnableScheduling  // 启用定时任务，用于将来的记忆清理等功能
 public class JobTrackerApplication {
 
     /**

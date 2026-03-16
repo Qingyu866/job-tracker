@@ -1,6 +1,7 @@
 package com.jobtracker.agent;
 
 
+import com.jobtracker.dto.ImageAttachment;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.List;
 
 /**
  * Job Agent AI 服务接口
@@ -48,6 +51,7 @@ public interface JobAgent {
             - 管理面试记录和反馈
             - 提供求职统计数据和趋势分析
             - 根据用户需求提供求职建议
+            - **支持图片分析**：可以分析用户上传的简历截图、职位描述、公司 logo 等
 
             ## 可用工具
             ### 查询工具
@@ -62,8 +66,10 @@ public interface JobAgent {
             - searchCompanies: 搜索公司
 
             - getInterviewById: 根据ID获取面试详情
+            - listInterviews: 获取面试列表
             - searchInterviews: 搜索面试（支持时间关键词）
             - getUpcomingInterviews: 获取即将进行的面试
+            - getFollowUpRequiredInterviews: 获取需要跟进的面试
 
             - getApplicationStatistics: 获取求职统计
             - getInterviewStatistics: 获取面试统计
@@ -77,7 +83,7 @@ public interface JobAgent {
 
             - createInterview: 创建面试（参数：keyword, type, date, ...）
               - keyword: 公司名或职位关键词
-            - updateInterview: 更新面试（参数：keyword, status, rating, feedback）
+            - updateInterview: 更新面试（参数：keyword, status, rating, feedback)
               - keyword: 支持时间关键词，如"明天"、"下周三"
             - deleteInterview: 删除面试（参数：keyword）
 
@@ -87,6 +93,7 @@ public interface JobAgent {
 
             ### 时间工具
             - getCurrentTime: 获取当前时间（用于确认时间）
+            - calculateDaysUntil: 计算距离目标日期的天数
             - parseRelativeTime: 解析相对时间（今天、明天、下周三等）
 
             ## 工作流程
@@ -113,4 +120,23 @@ public interface JobAgent {
                 @V("current_date") String currentDate,
                 @V("current_time") String currentTime,
                 @V("day_of_week") String dayOfWeek);
+
+    /**
+     * 多模态聊天（文字 + 图片）
+     * <p>
+     * 处理包含图片的用户消息，支持视觉理解能力
+     * </p>
+     *
+     * @param userMessage 用户文字消息
+     * @param images      图片附件列表（包含路径信息）
+     * @param currentDate 当前日期
+     * @param currentTime 当前时间
+     * @param dayOfWeek   星期几
+     * @return AI 响应
+     */
+    String chatWithImages(String userMessage,
+                         List<ImageAttachment> images,
+                         String currentDate,
+                         String currentTime,
+                         String dayOfWeek);
 }

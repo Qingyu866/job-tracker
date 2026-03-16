@@ -79,7 +79,10 @@ src/main/java/com/jobtracker/
 │   │   ├── query/     # Read operations
 │   │   ├── shared/    # Common utilities (ToolHelper, ToolResult)
 │   │   └── statistics/# Statistics tools
-│   └── memory/        # Chat memory providers
+│   ├── memory/        # Chat memory providers
+│   │   └── SafeTurnBasedChatMemoryProvider.java
+│   ├── JobAgent.java  # AI service interface
+│   └── JobAgentFactory.java  # Dynamic agent creation (session isolation)
 ├── config/            # Spring configuration
 ├── constants/         # Enums (ApplicationStatus, InterviewStatus)
 ├── controller/        # REST endpoints
@@ -174,8 +177,43 @@ Real-time AI chat through WebSocket with full conversation history:
 - `ChatWebSocketHandler.java`: Message handling
 - `ChatHistoryService.java`: Persistence logic
 - `SafeTurnBasedChatMemoryProvider.java`: Memory management
+- `JobAgentFactory.java`: Dynamic agent creation for session isolation
 
-### 4. Centralized State Management (Frontend)
+**Important**: Each session gets its own isolated ChatMemory through JobAgentFactory
+
+### 4. Chat Memory Isolation Pattern
+
+**Problem**: Multiple users/sessions sharing the same AI agent causes memory contamination.
+
+**Solution**: Use factory pattern to create agents with isolated memories per session.
+
+```java
+// JobAgentFactory creates agents with independent memories
+@Component
+public class JobAgentFactory {
+    private final SafeTurnBasedChatMemoryProvider memoryProvider;
+
+    public JobAgent createAgent(String sessionId) {
+        // Provider manages internal cache per sessionId
+        ChatMemory memory = memoryProvider.get(sessionId);
+
+        return AiServices.builder(JobAgent.class)
+            .chatMemory(memory)  // Isolated for this session
+            .build();
+    }
+}
+
+// In handler
+JobAgent agent = jobAgentFactory.createAgent(sessionId);
+String response = agent.chat(message);
+```
+
+**Key Points**:
+- `SafeTurnBasedChatMemoryProvider` has internal cache (no duplicate caching needed)
+- Each `sessionId` gets its own `ChatMemory` instance
+- Messages are cleaned by turn (not by count) to preserve conversation integrity
+
+### 5. Centralized State Management (Frontend)
 
 **Zustand store** at `frontend/src/store/applicationStore.ts`:
 
@@ -198,7 +236,7 @@ interface ApplicationStore {
 
 **Pattern**: All API calls refresh data automatically (optimistic UI not used)
 
-### 5. Multi-View Architecture
+### 6. Multi-View Architecture
 
 Frontend supports 4 interchangeable views:
 - **Table**: Traditional data grid
@@ -544,16 +582,29 @@ VITE_WS_URL=ws://localhost:8080/api/ws/chat
 - **已有文档**：不需要重命名已有文档，但新文档必须遵循此规则
 
 **Backend Design Docs** (`backend/docs/`):
-- `状态流程设计_20260314.md` - Status flow architecture
-- `AI工具重构设计_20260314.md` - AI tool system design
-- `AI聊天持久化设计_20260313.md` - Chat persistence design
-- `工具调用追踪修复_20260315.md` - Tool call tracking fix
 
-**Frontend Design Docs** (`frontend/docs/`):
-- Component design patterns
-- View architecture
-
-**API Documentation**: See `docs/API_REFERENCE.md` and `docs/NEW_API_REFERENCE.md`
+```
+docs/
+├── 问题修复/          # Problem fixes (4个文档)
+│   ├── 聊天记忆隔离问题分析与解决方案_20260315.md
+│   ├── 多表查询优化需求文档_20260315.md
+│   ├── 工具调用追踪修复_20260315.md
+│   └── 工具调用追踪快速参考_20260315.md
+├── 功能设计/          # Feature designs (3个文档)
+│   ├── AI应用开发_聊天记忆隔离问题_20260315.md
+│   ├── AI工具重构设计_20260314.md
+│   └── 定时提醒系统设计_20260314.md
+├── 架构设计/          # Architecture designs (3个文档)
+│   ├── AI聊天持久化设计_20260313.md
+│   ├── 状态流程设计_20260314.md
+│   └── 前端设计文档_20260312.md
+└── API文档/           # API references (5个文档)
+    ├── API参考文档_20260312.md
+    ├── P2阶段API参考文档_20260313.md
+    ├── 前端API参考文档_20260312.md
+    ├── 新API参考文档_20260313.md
+    └── 待实现接口文档_20260313.md
+```
 
 ---
 

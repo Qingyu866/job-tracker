@@ -4,6 +4,7 @@ import { useChatStore } from '@/store/chatStore';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { SessionList } from './SessionList';
+import type { ImageAttachment } from '@/types/chat';
 import './ChatPanel.css';
 
 interface ChatPanelProps {
@@ -20,6 +21,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     loadSessions,
     initializeSession,
     isInitialized,
+    currentSessionKey,
   } = useChatStore();
 
   const [showSessions, setShowSessions] = useState(false);
@@ -41,8 +43,8 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     init();
   }, [loadSessions, initializeSession]);
 
-  const handleSend = async (content: string) => {
-    await sendMessage(content);
+  const handleSend = async (content: string, images: ImageAttachment[]) => {
+    await sendMessage(content, images);
   };
 
   const isLoading = isLoadingHistory || !isInitialized;
@@ -116,6 +118,7 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
                 <Bot className="w-16 h-16 mx-auto mb-2" />
                 <div className="text-sm">你好！我是 AI 助手</div>
                 <div className="text-xs mt-1">有什么可以帮你的吗？</div>
+                <div className="text-xs mt-2 text-paper-400">支持发送文字和图片</div>
               </div>
             </div>
           ) : (
@@ -138,7 +141,11 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
         </div>
 
         <div className="p-4 border-t border-paper-200">
-          <ChatInput onSend={handleSend} disabled={!isConnected} />
+          <ChatInput 
+            onSend={handleSend} 
+            disabled={!isConnected || !currentSessionKey}
+            sessionKey={currentSessionKey}
+          />
         </div>
       </div>
     </div>

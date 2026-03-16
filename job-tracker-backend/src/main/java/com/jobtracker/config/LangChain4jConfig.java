@@ -1,17 +1,18 @@
 package com.jobtracker.config;
 
 import com.jobtracker.agent.JobAgent;
+import com.jobtracker.agent.memory.SafeTurnBasedChatMemoryProvider;
 import com.jobtracker.agent.tools.ApplicationTools;
 import com.jobtracker.agent.tools.CompanyTools;
 import com.jobtracker.agent.tools.InterviewTools;
+import com.jobtracker.service.ChatHistoryService;
 import dev.langchain4j.http.client.jdk.JdkHttpClient;
 import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
-import dev.langchain4j.memory.chat.ChatMemoryProvider;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.service.AiServices;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,16 +27,19 @@ import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
  * <p>
  * 配置 AI Agent 相关的 Bean，包括：
  * - StreamingChatModel: 流式聊天模型（连接 LM Studio）
- * - ChatMemoryProvider: 聊天记忆提供器
+ * - ChatMemoryProvider: 聊天记忆提供器（支持从数据库加载历史）
  * - JobAgent: AI 服务实例
  * </p>
  *
  * @author Job Tracker Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 @Configuration
+@RequiredArgsConstructor
 public class LangChain4jConfig {
+
+    private final ChatHistoryService chatHistoryService;
 
     /**
      * LM Studio API 基础 URL
@@ -72,6 +76,12 @@ public class LangChain4jConfig {
      */
     @Value("${langchain4j.chat-memory.window-size:20}")
     private Integer chatMemoryWindowSize;
+
+    /**
+     * 从数据库加载的历史消息数量
+     */
+    @Value("${langchain4j.chat-memory.history-load-limit:10}")
+    private Integer historyLoadLimit;
 
 
     /**
@@ -134,18 +144,21 @@ public class LangChain4jConfig {
     /**
      * 配置聊天记忆提供器
      * <p>
-     * 为每个会话维护独立的聊天记忆
-     * 使用滑动窗口策略，保留最近的 N 条消息
+     * 使用项目自定义的 SafeTurnBasedChatMemoryProvider：
+     * - 为每个会话维护独立的聊天记忆
+     * - 从数据库加载历史消息（服务重启后恢复）
+     * - 消息序列验证和修复（避免 "Conversation roles must alternate" 错误）
+     * - 基于轮次清理消息，不会打断对话
      * </p>
      *
-     * @return ChatMemoryProvider 实例
+     * @return SafeTurnBasedChatMemoryProvider 实例
      */
     @Bean
-    public ChatMemoryProvider chatMemoryProvider() {
-        return memoryId -> MessageWindowChatMemory.builder()
-                .maxMessages(10)  // 减小窗口大小，避免历史过长导致混乱
-                .id(memoryId)
-                .build();
+    public SafeTurnBasedChatMemoryProvider chatMemoryProvider() {
+        return new SafeTurnBasedChatMemoryProvider(
+                chatMemoryWindowSize,
+                chatHistoryService,
+                historyLoadLimit);
     }
 
     /**
@@ -153,6 +166,10 @@ public class LangChain4jConfig {
      * <p>
      * 集成聊天模型、聊天记忆和工具方法
      * 创建完整的 AI 服务实例
+     * </p>
+     * <p>
+     * <strong>注意：</strong>此单例 Bean 已弃用，改用 {@link com.jobtracker.agent.JobAgentFactory}
+     * 实现真正的会话隔离。保留此 Bean 是为了向后兼容。
      * </p>
      *
      * @param chatModel         非流式聊天模型
@@ -164,10 +181,11 @@ public class LangChain4jConfig {
      * @return JobAgent 实例
      */
     @Bean
+    @Deprecated
     public JobAgent jobAgent(
             OpenAiChatModel chatModel,
             StreamingChatModel streamingChatModel,
-            ChatMemoryProvider chatMemoryProvider,
+            SafeTurnBasedChatMemoryProvider chatMemoryProvider,
             ApplicationTools applicationTools,
             InterviewTools interviewTools,
             CompanyTools companyTools

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * WebSocket 消息 DTO
  * <p>
@@ -12,7 +14,7 @@ import lombok.NoArgsConstructor;
  * </p>
  *
  * @author Job Tracker Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 @Data
@@ -53,6 +55,14 @@ public class WebSocketMessage {
      * 时间戳
      */
     private Long timestamp;
+
+    /**
+     * 图片ID列表（多模态消息）
+     * <p>
+     * 用户先上传图片获得 imageId，发送消息时携带 imageId 列表
+     * </p>
+     */
+    private List<Long> imageIds;
 
     /**
      * 扩展数据（JSON 格式）

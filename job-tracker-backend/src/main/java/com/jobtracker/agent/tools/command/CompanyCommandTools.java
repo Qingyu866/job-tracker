@@ -31,32 +31,24 @@ public class CompanyCommandTools {
     private final ToolHelper toolHelper;
 
     /**
-     * 创建公司
+     * 创建公司（快速创建，仅需名称）
      */
     @Tool("""
-        [创建] 新建公司信息
+        [创建] 新建公司信息（快速创建，仅需名称）
 
-        适用场景：用户想要添加一个新公司到系统
+        适用场景：
+        - 用户说"添加一个字节跳动"
+        - 用户说"创建腾讯公司"
 
         必填参数：
         - name: 公司名称
 
-        可选参数：
-        - industry: 行业类型
-        - size: 公司规模（如：100-499人）
-        - location: 公司地址
-        - website: 公司官网
-        - description: 公司描述
-
-        返回：创建结果
+        说明：
+        - 其他信息（行业、规模等）可通过更新工具补充
+        - 返回：创建结果
         """)
     public ToolResult createCompany(
-            String name,
-            String industry,
-            String size,
-            String location,
-            String website,
-            String description
+            String name
     ) {
         log.info("AI调用：创建公司 name={}", name);
 
@@ -72,13 +64,14 @@ public class CompanyCommandTools {
                     String.format("公司已存在：%s（ID: %d）", name, existing.getId()));
             }
 
+            // 创建公司（仅设置名称）
             Company company = Company.builder()
                     .name(name)
-                    .industry(industry)
-                    .size(size)
-                    .location(location)
-                    .website(website)
-                    .description(description)
+                    .industry(null)
+                    .size(null)
+                    .location(null)
+                    .website(null)
+                    .description(null)
                     .build();
 
             companyService.save(company);

@@ -242,14 +242,14 @@ export function CompanyManagementPage() {
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="编辑公司">
         <div className="p-6">
           <CreateCompanyForm
-            company={companyToEdit}
+            company={companyToEdit ?? undefined}
             onSuccess={handleCompanyUpdated}
             onCancel={() => setShowEditModal(false)}
           />
         </div>
       </Modal>
 
-      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
+      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="确认删除">
         <div className="bg-white rounded-lg p-6 max-w-md">
           <div className="text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

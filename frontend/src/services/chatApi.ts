@@ -1,15 +1,7 @@
 import apiClient from './api';
-import type { ChatSession, ServerChatMessage, ToolCallRecord } from '@/types/chat';
+import type { ChatSession, ServerChatMessage, ChatMessageWithImages, ToolCallRecord, ImageAttachment, ApiResponse } from '@/types/chat';
 
 const CHAT_BASE_URL = 'http://localhost:8080/api/chat';
-
-interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-  timestamp: number;
-  success: boolean;
-}
 
 export const chatApi = {
   async createSession(title?: string): Promise<ChatSession> {
@@ -34,6 +26,13 @@ export const chatApi = {
     return response.data.data;
   },
 
+  async getSessionMessagesWithImages(sessionKey: string): Promise<ChatMessageWithImages[]> {
+    const response = await apiClient.get<ApiResponse<ChatMessageWithImages[]>>(
+      `${CHAT_BASE_URL}/sessions/${sessionKey}/messages-with-images`
+    );
+    return response.data.data;
+  },
+
   async deleteSession(sessionKey: string): Promise<boolean> {
     const response = await apiClient.delete<ApiResponse<boolean>>(
       `${CHAT_BASE_URL}/sessions/${sessionKey}`
@@ -46,6 +45,27 @@ export const chatApi = {
       `${CHAT_BASE_URL}/messages/${messageId}/tool-calls`
     );
     return response.data.data;
+  },
+
+  async uploadImage(file: File, sessionKey: string): Promise<ImageAttachment> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sessionKey', sessionKey);
+
+    const response = await apiClient.post<ApiResponse<ImageAttachment>>(
+      `${CHAT_BASE_URL}/upload/image`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data.data;
+  },
+
+  getImageUrl(imageId: number, sessionKey: string): string {
+    return `${CHAT_BASE_URL}/images/${imageId}?sessionId=${sessionKey}`;
   },
 };
 

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Plus, Trash2, MessageSquare } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import type { ChatSession } from '@/types/chat';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 export function SessionList() {
   const {
@@ -10,6 +12,8 @@ export function SessionList() {
     deleteSession,
     createNewSession
   } = useChatStore();
+
+  const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -21,9 +25,24 @@ export function SessionList() {
     });
   };
 
+  const handleDeleteClick = (e: React.MouseEvent, session: ChatSession) => {
+    e.stopPropagation();
+    setDeleteTarget(session);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteSession(deleteTarget.sessionKey);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteTarget(null);
+  };
+
   return (
     <div className="flex flex-col h-full bg-paper-50">
-      {/* 新建会话按钮 */}
       <div className="p-2 border-b border-paper-200">
         <button
           onClick={createNewSession}
@@ -37,7 +56,6 @@ export function SessionList() {
         </button>
       </div>
 
-      {/* 会话列表 */}
       <div className="flex-1 overflow-y-auto">
         {sessions.length === 0 ? (
           <div
@@ -57,12 +75,23 @@ export function SessionList() {
                 session={session}
                 isActive={session.sessionKey === currentSessionKey}
                 onSelect={() => switchSession(session.sessionKey)}
-                onDelete={() => deleteSession(session.sessionKey)}
+                onDelete={(e) => handleDeleteClick(e, session)}
                 formatDate={formatDate}
               />
             ))
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        title="删除对话"
+        message={`确定要删除对话「${deleteTarget?.title || `对话 ${deleteTarget?.sessionKey?.slice(0, 8)}`}」吗？此操作不可恢复。`}
+        confirmText="删除"
+        cancelText="取消"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </div>
   );
 }
@@ -71,7 +100,7 @@ interface SessionItemProps {
   session: ChatSession;
   isActive: boolean;
   onSelect: () => void;
-  onDelete: () => void;
+  onDelete: (e: React.MouseEvent) => void;
   formatDate: (date: string) => string;
 }
 
@@ -98,12 +127,7 @@ function SessionItem({ session, isActive, onSelect, onDelete, formatDate }: Sess
         </div>
       </div>
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (window.confirm('确定要删除这个对话吗？')) {
-            onDelete();
-          }
-        }}
+        onClick={onDelete}
         className="opacity-0 group-hover:opacity-100 p-1 hover:bg-paper-200 rounded transition-opacity"
       >
         <Trash2 className="w-4 h-4 text-paper-500" />

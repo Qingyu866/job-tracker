@@ -260,7 +260,7 @@ export function CalendarView() {
               },
             },
             month: {
-              dateHeader: ({ date, label, drilldownView }: { date: Date; label: string; drilldownView: string }) => {
+              dateHeader: ({ date, label }: { date: Date; label: string }) => {
                 const dateKey = format(date, 'yyyy-MM-dd');
                 const count = interviewsByDate.get(dateKey) || 0;
                 const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
