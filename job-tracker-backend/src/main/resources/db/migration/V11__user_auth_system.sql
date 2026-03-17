@@ -42,16 +42,9 @@ CREATE TABLE IF NOT EXISTS `sys_user_role` (
 -- 3. 插入默认管理员账户
 -- 用户名: admin
 -- 密码: 123456
--- 加密方式: Sa-Token SaSecureUtil (SHA256 + 盐, 1024 次散列)
 --
--- ⚠️ 重要说明:
--- 当前使用的是临时占位密码（仅 SHA256 一次），仅用于开发测试
--- 生产环境部署前，请使用以下方式重新生成正确的加密密码：
---
--- 方式一：启动后端后，调用修改密码接口
--- 方式二：使用 PasswordUtil.generateDefaultAdminPassword() 生成
---
--- 临时密码（仅用于测试）: SHA-256("123456") =
+-- ⚠️ 重要: 当前使用临时加密密码，仅用于开发测试
+-- 生产环境请通过修改密码接口重新设置
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `status`)
 VALUES (
     1,
@@ -66,36 +59,32 @@ INSERT INTO `sys_user_role` (`user_id`, `role_code`)
 VALUES (1, 'ADMIN')
 ON DUPLICATE KEY UPDATE `user_id` = `user_id`;
 
--- 5. 创建索引优化查询性能
--- MySQL 不支持 CREATE INDEX IF NOT EXISTS，使用存储过程处理
-DROP PROCEDURE IF EXISTS add_index_if_not_exists$$
+-- 5. 创建索引（忽略已存在的错误）
+SET @exist_index = (SELECT COUNT(*) FROM information_schema.statistics
+                     WHERE table_schema = DATABASE()
+                     AND table_name = 'sys_user'
+                     AND index_name = 'idx_user_status');
 
-CREATE PROCEDURE add_index_if_not_exists()
-BEGIN
-    -- 检查并创建 idx_user_status 索引
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.statistics
-        WHERE table_schema = DATABASE()
-        AND table_name = 'sys_user'
-        AND index_name = 'idx_user_status'
-    ) THEN
-        CREATE INDEX `idx_user_status` ON `sys_user` (`status`, `deleted`);
-    END IF;
+SET @sql = IF(@exist_index = 0,
+              'CREATE INDEX idx_user_status ON sys_user (status, deleted)',
+              'SELECT "Index idx_user_status already exists"');
 
-    -- 检查并创建 idx_user_created 索引
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.statistics
-        WHERE table_schema = DATABASE()
-        AND table_name = 'sys_user'
-        AND index_name = 'idx_user_created'
-    ) THEN
-        CREATE INDEX `idx_user_created` ON `sys_user` (`created_at`);
-    END IF;
-END$$
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
-DELIMITER ;
-CALL add_index_if_not_exists();
-DROP PROCEDURE add_index_if_not_exists;
+SET @exist_index = (SELECT COUNT(*) FROM information_schema.statistics
+                     WHERE table_schema = DATABASE()
+                     AND table_name = 'sys_user'
+                     AND index_name = 'idx_user_created');
+
+SET @sql = IF(@exist_index = 0,
+              'CREATE INDEX idx_user_created ON sys_user (created_at)',
+              'SELECT "Index idx_user_created already exists"');
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ========================================
 -- 执行说明

@@ -1,5 +1,6 @@
 package com.jobtracker.controller;
 
+import com.jobtracker.auth.context.UserContext;
 import com.jobtracker.common.ApiResponse;
 import com.jobtracker.entity.*;
 import com.jobtracker.service.UserResumeService;
@@ -30,7 +31,14 @@ public class ResumeController {
      */
     @PostMapping
     public ApiResponse<UserResume> createResume(@RequestBody UserResume resume) {
+        // 从 Token 获取当前用户 ID
+        Long userId = UserContext.getCurrentUserId();
+        resume.setUserId(userId);
+
         UserResume created = resumeService.create(resume);
+
+        log.info("创建简历成功: resumeId={}, userId={}", created.getResumeId(), userId);
+
         return ApiResponse.success("简历创建成功", created);
     }
 
@@ -72,21 +80,23 @@ public class ResumeController {
     }
 
     /**
-     * 获取用户的所有简历
-     * GET /api/resumes/user/{userId}
+     * 获取当前用户的所有简历
+     * GET /api/resumes/my
      */
-    @GetMapping("/user/{userId}")
-    public ApiResponse<List<UserResume>> getUserResumes(@PathVariable Long userId) {
+    @GetMapping("/my")
+    public ApiResponse<List<UserResume>> getMyResumes() {
+        Long userId = UserContext.getCurrentUserId();
         List<UserResume> resumes = resumeService.getByUserId(userId);
         return ApiResponse.success(resumes);
     }
 
     /**
-     * 获取用户的默认简历
-     * GET /api/resumes/user/{userId}/default
+     * 获取当前用户的默认简历
+     * GET /api/resumes/my/default
      */
-    @GetMapping("/user/{userId}/default")
-    public ApiResponse<UserResume> getDefaultResume(@PathVariable Long userId) {
+    @GetMapping("/my/default")
+    public ApiResponse<UserResume> getMyDefaultResume() {
+        Long userId = UserContext.getCurrentUserId();
         UserResume resume = resumeService.getDefaultResume(userId);
         if (resume == null) {
             return ApiResponse.notFound("未找到默认简历");
@@ -99,12 +109,37 @@ public class ResumeController {
      * PUT /api/resumes/{resumeId}/default
      */
     @PutMapping("/{resumeId}/default")
-    public ApiResponse<String> setDefaultResume(
-            @PathVariable Long resumeId,
-            @RequestParam Long userId
-    ) {
+    public ApiResponse<String> setDefaultResume(@PathVariable Long resumeId) {
+        Long userId = UserContext.getCurrentUserId();
         resumeService.setDefaultResume(userId, resumeId);
         return ApiResponse.success("默认简历设置成功");
+    }
+
+    /**
+     * 获取用户的所有简历（已废弃，请使用 /my）
+     * GET /api/resumes/user/{userId}
+     * @deprecated 请使用 /my
+     */
+    @Deprecated(since = "2026-03-17", forRemoval = true)
+    @GetMapping("/user/{userId}")
+    public ApiResponse<List<UserResume>> getUserResumes(@PathVariable Long userId) {
+        List<UserResume> resumes = resumeService.getByUserId(userId);
+        return ApiResponse.success(resumes);
+    }
+
+    /**
+     * 获取用户的默认简历（已废弃，请使用 /my/default）
+     * GET /api/resumes/user/{userId}/default
+     * @deprecated 请使用 /my/default
+     */
+    @Deprecated(since = "2026-03-17", forRemoval = true)
+    @GetMapping("/user/{userId}/default")
+    public ApiResponse<UserResume> getDefaultResume(@PathVariable Long userId) {
+        UserResume resume = resumeService.getDefaultResume(userId);
+        if (resume == null) {
+            return ApiResponse.notFound("未找到默认简历");
+        }
+        return ApiResponse.success(resume);
     }
 
     /**

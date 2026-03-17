@@ -1,6 +1,7 @@
 package com.jobtracker.controller;
 
 import com.jobtracker.api.dto.StartInterviewRequest;
+import com.jobtracker.auth.context.UserContext;
 import com.jobtracker.common.ApiResponse;
 import com.jobtracker.entity.*;
 import com.jobtracker.agent.*;
@@ -38,15 +39,21 @@ public class MockInterviewController {
      */
     @PostMapping("/start")
     public ApiResponse<MockInterviewSession> startInterview(@RequestBody StartInterviewRequest request) {
+        // 从 Token 获取当前用户 ID
+        Long userId = UserContext.getCurrentUserId();
+
         MockInterviewSession session = interviewService.createSession(
                 request.getApplicationId(),
-                request.getUserId()
+                userId
         );
 
         // 创建 Agent 组
         InterviewAgentFactory.InterviewAgents agents = agentFactory.createAgents(session);
 
         interviewService.startInterview(session.getSessionId());
+
+        log.info("创建面试会话成功: sessionId={}, userId={}, applicationId={}",
+                session.getSessionId(), userId, request.getApplicationId());
 
         return ApiResponse.success("面试会话创建成功", session);
     }
@@ -65,9 +72,22 @@ public class MockInterviewController {
     }
 
     /**
-     * 获取用户的面试会话列表
-     * GET /api/mock-interview/sessions/user/{userId}
+     * 获取当前用户的面试会话列表
+     * GET /api/mock-interview/sessions/my
      */
+    @GetMapping("/sessions/my")
+    public ApiResponse<List<MockInterviewSession>> getMySessions() {
+        Long userId = UserContext.getCurrentUserId();
+        List<MockInterviewSession> sessions = interviewService.getUserSessions(userId);
+        return ApiResponse.success(sessions);
+    }
+
+    /**
+     * 获取用户的面试会话列表（已废弃，请使用 /sessions/my）
+     * GET /api/mock-interview/sessions/user/{userId}
+     * @deprecated 请使用 /sessions/my
+     */
+    @Deprecated(since = "2026-03-17", forRemoval = true)
     @GetMapping("/sessions/user/{userId}")
     public ApiResponse<List<MockInterviewSession>> getUserSessions(@PathVariable Long userId) {
         List<MockInterviewSession> sessions = interviewService.getUserSessions(userId);

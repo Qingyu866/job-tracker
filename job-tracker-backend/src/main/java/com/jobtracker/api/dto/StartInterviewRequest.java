@@ -1,5 +1,6 @@
 package com.jobtracker.api.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -14,10 +15,6 @@ public class StartInterviewRequest {
     /**
      * 申请ID
      */
+    @NotNull(message = "申请ID不能为空")
     private Long applicationId;
-
-    /**
-     * 用户ID
-     */
-    private Long userId;
 }

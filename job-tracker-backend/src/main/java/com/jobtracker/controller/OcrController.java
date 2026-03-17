@@ -1,5 +1,6 @@
 package com.jobtracker.controller;
 
+import com.jobtracker.auth.context.UserContext;
 import com.jobtracker.common.ApiResponse;
 import com.jobtracker.entity.OcrCallRecord;
 import com.jobtracker.ocr.OcrHelper;
@@ -169,7 +170,20 @@ public class OcrController {
     }
 
     /**
-     * 获取 OCR 调用记录
+     * 获取当前用户的 OCR 调用记录
+     * GET /api/ocr/records/my
+     *
+     * @return 记录列表
+     */
+    @GetMapping("/records/my")
+    public ApiResponse<List<OcrCallRecord>> getMyRecords() {
+        Long userId = UserContext.getCurrentUserId();
+        List<OcrCallRecord> records = ocrRecordService.getByUserId(userId);
+        return ApiResponse.success(records);
+    }
+
+    /**
+     * 获取 OCR 调用记录（按会话筛选）
      * GET /api/ocr/records
      *
      * @param sessionId 会话 ID（可选）
@@ -184,8 +198,14 @@ public class OcrController {
         if (sessionId != null && !sessionId.isBlank()) {
             records = ocrRecordService.getBySessionId(sessionId);
         } else {
-            // 返回最近 20 条记录
-            records = ocrRecordService.getBySessionId("");
+            // 返回当前用户的记录
+            Long userId = UserContext.getCurrentUserIdOrDefault(null);
+            if (userId != null) {
+                records = ocrRecordService.getByUserId(userId);
+            } else {
+                // 未登录时返回空列表
+                records = List.of();
+            }
         }
 
         return ApiResponse.success(records);
