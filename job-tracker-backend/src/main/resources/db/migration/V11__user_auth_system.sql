@@ -9,7 +9,7 @@
 CREATE TABLE IF NOT EXISTS `sys_user` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     `username` VARCHAR(50) NOT NULL COMMENT '用户名（登录名）',
-    `password` VARCHAR(128) NOT NULL COMMENT '密码（BCrypt加密）',
+    `password` VARCHAR(128) NOT NULL COMMENT '密码（Sa-Token SHA256+盐 加密）',
     `nickname` VARCHAR(50) DEFAULT NULL COMMENT '昵称',
     `avatar` VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
     `email` VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
@@ -44,17 +44,19 @@ CREATE TABLE IF NOT EXISTS `sys_user_role` (
 -- 密码: 123456
 -- 加密方式: Sa-Token SaSecureUtil (SHA256 + 盐, 1024 次散列)
 --
--- ⚠️ 注意: 密码哈希值需要使用 PasswordUtil.encrypt("123456", "admin") 生成
+-- ⚠️ 重要说明:
+-- 当前使用的是临时占位密码（仅 SHA256 一次），仅用于开发测试
+-- 生产环境部署前，请使用以下方式重新生成正确的加密密码：
 --
--- 默认哈希值（供参考）:
--- $2a$10$ 开头的是 BCrypt，这里使用 Sa-Token 方式：
--- 格式: 64 位 SHA256 哈希字符串
+-- 方式一：启动后端后，调用修改密码接口
+-- 方式二：使用 PasswordUtil.generateDefaultAdminPassword() 生成
 --
+-- 临时密码（仅用于测试）: SHA-256("123456") =
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `status`)
 VALUES (
     1,
     'admin',
-    '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',  -- SHA-256("123456") 临时占位，请用 Sa-Token 生成
+    '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
     '系统管理员',
     1
 ) ON DUPLICATE KEY UPDATE `username` = `username`;
@@ -65,8 +67,35 @@ VALUES (1, 'ADMIN')
 ON DUPLICATE KEY UPDATE `user_id` = `user_id`;
 
 -- 5. 创建索引优化查询性能
-CREATE INDEX IF NOT EXISTS `idx_user_status` ON `sys_user` (`status`, `deleted`);
-CREATE INDEX IF NOT EXISTS `idx_user_created` ON `sys_user` (`created_at`);
+-- MySQL 不支持 CREATE INDEX IF NOT EXISTS，使用存储过程处理
+DROP PROCEDURE IF EXISTS add_index_if_not_exists$$
+
+CREATE PROCEDURE add_index_if_not_exists()
+BEGIN
+    -- 检查并创建 idx_user_status 索引
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+        AND table_name = 'sys_user'
+        AND index_name = 'idx_user_status'
+    ) THEN
+        CREATE INDEX `idx_user_status` ON `sys_user` (`status`, `deleted`);
+    END IF;
+
+    -- 检查并创建 idx_user_created 索引
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+        AND table_name = 'sys_user'
+        AND index_name = 'idx_user_created'
+    ) THEN
+        CREATE INDEX `idx_user_created` ON `sys_user` (`created_at`);
+    END IF;
+END$$
+
+DELIMITER ;
+CALL add_index_if_not_exists();
+DROP PROCEDURE add_index_if_not_exists;
 
 -- ========================================
 -- 执行说明
