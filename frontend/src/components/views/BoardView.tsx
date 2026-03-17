@@ -21,7 +21,7 @@ function isStatusKey(id: string | number): id is keyof typeof STATUS_CONFIG {
 }
 
 export function BoardView({ isAiPanelOpen = true }: BoardViewProps) {
-  const { applications, updateApplicationStatus, fetchApplications } = useApplicationStore();
+  const { applications, updateApplicationStatus, fetchApplications, setDetailOpen } = useApplicationStore();
   const { rules: transitionRules } = useStatusTransitions();
   const [selectedApplication, setSelectedApplication] = useState<number | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
@@ -30,10 +30,12 @@ export function BoardView({ isAiPanelOpen = true }: BoardViewProps) {
 
   const handleCardClick = (applicationId: number) => {
     setSelectedApplication(applicationId);
+    setDetailOpen(true);
   };
 
   const handleCloseModal = () => {
     setSelectedApplication(null);
+    setDetailOpen(false);
   };
 
   const handleUpdate = () => {

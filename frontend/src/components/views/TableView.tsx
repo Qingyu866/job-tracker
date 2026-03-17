@@ -20,15 +20,17 @@ const STATUS_CLASS_MAP: Record<string, string> = {
 };
 
 export function TableView() {
-  const { applications, loading, error, fetchApplications } = useApplicationStore();
+  const { applications, loading, error, fetchApplications, setDetailOpen } = useApplicationStore();
   const [selectedApplication, setSelectedApplication] = useState<number | null>(null);
 
   const handleApplicationClick = (applicationId: number) => {
     setSelectedApplication(applicationId);
+    setDetailOpen(true);
   };
 
   const handleCloseModal = () => {
     setSelectedApplication(null);
+    setDetailOpen(false);
   };
 
   const handleUpdate = () => {

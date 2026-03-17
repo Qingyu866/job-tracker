@@ -54,7 +54,7 @@ export default {
           amber: '#d4a574',
           green: '#8fbc8f',
           blue: '#7ba3b5',
-          red: '#c17f7f',
+          red: '#e53d3d',
           purple: '#9f7fb5',
         },
         status: {

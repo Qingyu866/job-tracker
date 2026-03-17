@@ -10,10 +10,10 @@ import type {
 } from '@/types/interview';
 
 export const interviewApi = {
-  async startInterview(applicationId: number, resumeId: number): Promise<MockInterviewSession> {
+  async startInterview(applicationId: number, userId?: number): Promise<MockInterviewSession> {
     const response = await apiClient.post<MockInterviewSession>('/mock-interview/start', {
       applicationId,
-      resumeId,
+      userId,
     });
     return response.data;
   },

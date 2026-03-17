@@ -59,6 +59,7 @@ export function InterviewChat({
 
   const isFinished = session?.state === 'FINISHED';
   const isDisabled = disabled || sending || isFinished;
+  const isWelcome = session?.state === 'CREATED' && messages.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden shadow-paper">
@@ -69,8 +70,17 @@ export function InterviewChat({
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-paper-400">
-            <p>面试即将开始...</p>
-            <p className="text-sm mt-2">请准备好回答面试官的问题</p>
+            {isWelcome ? (
+              <>
+                <p>欢迎来到 {session?.companyName} 的面试</p>
+                <p className="text-sm mt-2">面试官将根据你的简历内容进行提问</p>
+              </>
+            ) : (
+              <>
+                <p>面试即将开始...</p>
+                <p className="text-sm mt-2">请准备好回答面试官的问题</p>
+              </>
+            )}
           </div>
         ) : (
           messages.map((message) => (

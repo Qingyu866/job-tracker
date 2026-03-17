@@ -17,6 +17,7 @@ interface ApplicationStore {
   };
   loading: boolean;
   error: string | null;
+  isDetailOpen: boolean;
 
   // 操作
   fetchApplications: (keyword?: string) => Promise<void>;
@@ -31,6 +32,7 @@ interface ApplicationStore {
   switchView: (view: ViewType) => void;
   setFilters: (filters: Partial<ApplicationStore['filters']>) => void;
   setKeyword: (keyword: string) => Promise<void>;
+  setDetailOpen: (isOpen: boolean) => void;
 }
 
 export const useApplicationStore = create<ApplicationStore>((set, get) => ({
@@ -43,6 +45,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   filters: {},
   loading: false,
   error: null,
+  isDetailOpen: false,
 
   // 获取申请列表
   fetchApplications: async (keyword?: string) => {
@@ -186,5 +189,10 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   setKeyword: async (keyword: string) => {
     set({ filters: { ...get().filters, keyword } });
     await get().fetchApplications(keyword);
+  },
+
+  // 设置详情页打开状态
+  setDetailOpen: (isOpen: boolean) => {
+    set({ isDetailOpen: isOpen });
   },
 }));

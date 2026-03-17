@@ -27,7 +27,7 @@ interface InterviewState {
 interface InterviewStore extends InterviewState {
   fetchSessionList: (userId: number) => Promise<void>;
   fetchSession: (sessionId: string) => Promise<void>;
-  startInterview: (applicationId: number, resumeId: number) => Promise<string>;
+  startInterview: (applicationId: number, userId?: number) => Promise<string>;
   sendMessage: (content: string) => Promise<void>;
   finishInterview: () => Promise<void>;
   fetchReport: (sessionId: string) => Promise<void>;
@@ -137,9 +137,9 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
     }
   },
 
-  startInterview: async (applicationId: number, resumeId: number) => {
+  startInterview: async (applicationId: number, userId?: number) => {
     try {
-      const session = await interviewApi.startInterview(applicationId, resumeId);
+      const session = await interviewApi.startInterview(applicationId, userId);
       const sessionId = session.sessionId;
 
       set({
@@ -173,7 +173,6 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
       console.error('没有活跃的面试会话');
       return;
     }
-
     const userMessage: InterviewMessage = {
       id: `temp-${Date.now()}`,
       sessionId,
@@ -182,7 +181,6 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
       roundNumber: sessionState.session.currentRound,
       createdAt: new Date().toISOString(),
     };
-
     set({
       sessions: {
         ...get().sessions,
@@ -192,32 +190,27 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
         },
       },
     });
-
     try {
       const response = await interviewApi.sendMessage(
         sessionId,
         content,
         sessionState.session.currentRound
       );
-
+      const aiMessage: InterviewMessage = {
+        id: response.id,
+        sessionId,
+        role: response.role,
+        content: response.content,
+        roundNumber: response.roundNumber || sessionState.session.currentRound,
+        skillTag: response.skillTag,
+        createdAt: response.createdAt,
+      };
       set({
         sessions: {
           ...get().sessions,
           [sessionId]: {
             ...get().sessions[sessionId],
-            messages: [...get().sessions[sessionId].messages, response],
-            lastUpdated: Date.now(),
-          },
-        },
-      });
-
-      const updatedSession = await interviewApi.getSession(sessionId);
-      set({
-        sessions: {
-          ...get().sessions,
-          [sessionId]: {
-            ...get().sessions[sessionId],
-            session: updatedSession,
+            messages: [...get().sessions[sessionId].messages, aiMessage],
           },
         },
       });

@@ -25,7 +25,7 @@ export function InterviewHeader({ session, onExit }: InterviewHeaderProps) {
       case 'CREATED':
         return '准备中';
       case 'INTRODUCTION':
-        return '自我介绍';
+        return '欢迎';
       case 'TECHNICAL_QA':
         return '技术问答';
       case 'PROJECT_QA':

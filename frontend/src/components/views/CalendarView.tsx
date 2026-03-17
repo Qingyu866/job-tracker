@@ -43,7 +43,7 @@ interface CalendarEventData {
 }
 
 export function CalendarView() {
-  const { interviews, loading, error, fetchInterviews } = useApplicationStore();
+  const { interviews, loading, error, fetchInterviews, setDetailOpen } = useApplicationStore();
   const [selectedInterview, setSelectedInterview] = useState<InterviewRecord | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<View>(Views.MONTH);
@@ -96,7 +96,8 @@ export function CalendarView() {
   const handleSelectEvent = useCallback((event: CalendarEventData) => {
     console.log('[CalendarView] 点击事件:', event);
     setSelectedInterview(event.resource);
-  }, []);
+    setDetailOpen(true);
+  }, [setDetailOpen]);
 
   // 导航事件处理
   const handleNavigate = useCallback((newDate: Date, view: View, action: 'NEXT' | 'PREV' | 'TODAY' | 'DATE') => {
@@ -369,7 +370,10 @@ export function CalendarView() {
       {/* 面试详情模态框 */}
       <InterviewDetailModal
         interview={selectedInterview}
-        onClose={() => setSelectedInterview(null)}
+        onClose={() => {
+          setSelectedInterview(null);
+          setDetailOpen(false);
+        }}
         onUpdate={() => {
           console.log('[CalendarView] 刷新面试数据');
           fetchInterviews();

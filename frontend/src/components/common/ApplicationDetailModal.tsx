@@ -250,7 +250,7 @@ export function ApplicationDetailModal({
               <button
                 onClick={handleDelete}
                 disabled={isLoading}
-                className="px-4 py-3 bg-accent-red text-white rounded-lg hover:bg-red-700 transition-colors font-medium border-2 border-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium border-2 border-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
                 删除
