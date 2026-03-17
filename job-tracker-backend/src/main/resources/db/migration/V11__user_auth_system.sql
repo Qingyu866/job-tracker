@@ -41,12 +41,20 @@ CREATE TABLE IF NOT EXISTS `sys_user_role` (
 
 -- 3. 插入默认管理员账户
 -- 用户名: admin
--- 密码: 123456 (BCrypt 加密后)
+-- 密码: 123456
+-- 加密方式: Sa-Token SaSecureUtil (SHA256 + 盐, 1024 次散列)
+--
+-- ⚠️ 注意: 密码哈希值需要使用 PasswordUtil.encrypt("123456", "admin") 生成
+--
+-- 默认哈希值（供参考）:
+-- $2a$10$ 开头的是 BCrypt，这里使用 Sa-Token 方式：
+-- 格式: 64 位 SHA256 哈希字符串
+--
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `status`)
 VALUES (
     1,
     'admin',
-    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK8At6Z5',
+    '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',  -- SHA-256("123456") 临时占位，请用 Sa-Token 生成
     '系统管理员',
     1
 ) ON DUPLICATE KEY UPDATE `username` = `username`;

@@ -113,3 +113,24 @@ ocr:
   limits:
     max-image-size: 10485760  # 10MB
     supported-formats: jpg,jpeg,png,pdf
+
+# Sa-Token Configuration
+sa-token:
+  # Token 名称（也是 Cookie 名称）
+  token-name: satoken
+  # Token 有效期（秒）- 7天
+  timeout: 604800
+  # 是否允许同一账号多地同时登录
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个 Token
+  is-share: false
+  # Token 风格（可选值：uuid、simple-uuid、random-32、random-64、random-128、tik）
+  token-style: uuid
+  # 是否输出操作日志
+  is-log: false
+  # 是否从 Cookie 读取 Token
+  is-read-cookie: false
+  # 是否从 Header 读取 Token
+  is-read-header: true
+  # Token Header 名称
+  token-prefix: Bearer
