@@ -1,4 +1,4 @@
-package com.jobtracker.api.dto;
+package com.jobtracker.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

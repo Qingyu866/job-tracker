@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { Send } from 'lucide-react';
 import { Avatar, Button, Spinner } from '@/components/common';
 import type { InterviewMessage, MockInterviewSession } from '@/types/interview';
+import { normalizeState } from '@/types/interview';
 
 export interface InterviewChatProps {
   session: MockInterviewSession | null;
@@ -57,9 +58,9 @@ export function InterviewChat({
     }
   };
 
-  const isFinished = session?.state === 'FINISHED';
+  const isFinished = normalizeState(session?.state || '') === 'FINISHED';
   const isDisabled = disabled || sending || isFinished;
-  const isWelcome = session?.state === 'CREATED' && messages.length === 0;
+  const isWelcome = normalizeState(session?.state || '') === 'IDLE' && messages.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden shadow-paper">
@@ -123,7 +124,7 @@ export function InterviewChat({
 }
 
 function ChatMessageItem({ message }: { message: InterviewMessage }) {
-  const isUser = message.role === 'user';
+  const isUser = message.role === 'CANDIDATE';
   const isSystem = message.role === 'system';
 
   if (isSystem) {

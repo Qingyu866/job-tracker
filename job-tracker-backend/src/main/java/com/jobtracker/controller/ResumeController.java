@@ -1,7 +1,7 @@
 package com.jobtracker.controller;
 
-import com.jobtracker.auth.context.UserContext;
-import com.jobtracker.common.ApiResponse;
+import com.jobtracker.context.UserContext;
+import com.jobtracker.common.result.Result;
 import com.jobtracker.entity.*;
 import com.jobtracker.service.UserResumeService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class ResumeController {
      * POST /api/resumes
      */
     @PostMapping
-    public ApiResponse<UserResume> createResume(@RequestBody UserResume resume) {
+    public Result<UserResume> createResume(@RequestBody UserResume resume) {
         // 从 Token 获取当前用户 ID
         Long userId = UserContext.getCurrentUserId();
         resume.setUserId(userId);
@@ -39,7 +39,7 @@ public class ResumeController {
 
         log.info("创建简历成功: resumeId={}, userId={}", created.getResumeId(), userId);
 
-        return ApiResponse.success("简历创建成功", created);
+        return Result.success("简历创建成功", created);
     }
 
     /**
@@ -47,13 +47,13 @@ public class ResumeController {
      * PUT /api/resumes/{resumeId}
      */
     @PutMapping("/{resumeId}")
-    public ApiResponse<String> updateResume(
+    public Result<String> updateResume(
             @PathVariable Long resumeId,
             @RequestBody UserResume resume
     ) {
         resume.setResumeId(resumeId);
         resumeService.update(resume);
-        return ApiResponse.success("简历更新成功");
+        return Result.success("简历更新成功");
     }
 
     /**
@@ -61,9 +61,9 @@ public class ResumeController {
      * DELETE /api/resumes/{resumeId}
      */
     @DeleteMapping("/{resumeId}")
-    public ApiResponse<String> deleteResume(@PathVariable Long resumeId) {
+    public Result<String> deleteResume(@PathVariable Long resumeId) {
         resumeService.delete(resumeId);
-        return ApiResponse.success("简历删除成功");
+        return Result.success("简历删除成功");
     }
 
     /**
@@ -71,12 +71,12 @@ public class ResumeController {
      * GET /api/resumes/{resumeId}
      */
     @GetMapping("/{resumeId}")
-    public ApiResponse<UserResume> getResume(@PathVariable Long resumeId) {
+    public Result<UserResume> getResume(@PathVariable Long resumeId) {
         UserResume resume = resumeService.getById(resumeId);
         if (resume == null) {
-            return ApiResponse.notFound("简历不存在");
+            return Result.error("简历不存在");
         }
-        return ApiResponse.success(resume);
+        return Result.success(resume);
     }
 
     /**
@@ -84,10 +84,10 @@ public class ResumeController {
      * GET /api/resumes/my
      */
     @GetMapping("/my")
-    public ApiResponse<List<UserResume>> getMyResumes() {
+    public Result<List<UserResume>> getMyResumes() {
         Long userId = UserContext.getCurrentUserId();
         List<UserResume> resumes = resumeService.getByUserId(userId);
-        return ApiResponse.success(resumes);
+        return Result.success(resumes);
     }
 
     /**
@@ -95,13 +95,13 @@ public class ResumeController {
      * GET /api/resumes/my/default
      */
     @GetMapping("/my/default")
-    public ApiResponse<UserResume> getMyDefaultResume() {
+    public Result<UserResume> getMyDefaultResume() {
         Long userId = UserContext.getCurrentUserId();
         UserResume resume = resumeService.getDefaultResume(userId);
         if (resume == null) {
-            return ApiResponse.notFound("未找到默认简历");
+            return Result.error("未找到默认简历");
         }
-        return ApiResponse.success(resume);
+        return Result.success(resume);
     }
 
     /**
@@ -109,10 +109,10 @@ public class ResumeController {
      * PUT /api/resumes/{resumeId}/default
      */
     @PutMapping("/{resumeId}/default")
-    public ApiResponse<String> setDefaultResume(@PathVariable Long resumeId) {
+    public Result<String> setDefaultResume(@PathVariable Long resumeId) {
         Long userId = UserContext.getCurrentUserId();
         resumeService.setDefaultResume(userId, resumeId);
-        return ApiResponse.success("默认简历设置成功");
+        return Result.success("默认简历设置成功");
     }
 
     /**
@@ -122,9 +122,9 @@ public class ResumeController {
      */
     @Deprecated(since = "2026-03-17", forRemoval = true)
     @GetMapping("/user/{userId}")
-    public ApiResponse<List<UserResume>> getUserResumes(@PathVariable Long userId) {
+    public Result<List<UserResume>> getUserResumes(@PathVariable Long userId) {
         List<UserResume> resumes = resumeService.getByUserId(userId);
-        return ApiResponse.success(resumes);
+        return Result.success(resumes);
     }
 
     /**
@@ -134,12 +134,12 @@ public class ResumeController {
      */
     @Deprecated(since = "2026-03-17", forRemoval = true)
     @GetMapping("/user/{userId}/default")
-    public ApiResponse<UserResume> getDefaultResume(@PathVariable Long userId) {
+    public Result<UserResume> getDefaultResume(@PathVariable Long userId) {
         UserResume resume = resumeService.getDefaultResume(userId);
         if (resume == null) {
-            return ApiResponse.notFound("未找到默认简历");
+            return Result.error("未找到默认简历");
         }
-        return ApiResponse.success(resume);
+        return Result.success(resume);
     }
 
     /**
@@ -147,9 +147,9 @@ public class ResumeController {
      * GET /api/resumes/{resumeId}/projects
      */
     @GetMapping("/{resumeId}/projects")
-    public ApiResponse<List<ResumeProject>> getProjects(@PathVariable Long resumeId) {
+    public Result<List<ResumeProject>> getProjects(@PathVariable Long resumeId) {
         List<ResumeProject> projects = resumeService.getProjects(resumeId);
-        return ApiResponse.success(projects);
+        return Result.success(projects);
     }
 
     /**
@@ -157,8 +157,8 @@ public class ResumeController {
      * GET /api/resumes/{resumeId}/skills
      */
     @GetMapping("/{resumeId}/skills")
-    public ApiResponse<List<ResumeSkill>> getSkills(@PathVariable Long resumeId) {
+    public Result<List<ResumeSkill>> getSkills(@PathVariable Long resumeId) {
         List<ResumeSkill> skills = resumeService.getSkills(resumeId);
-        return ApiResponse.success(skills);
+        return Result.success(skills);
     }
 }

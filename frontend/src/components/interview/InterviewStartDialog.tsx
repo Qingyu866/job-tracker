@@ -3,26 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button, Badge, Spinner } from '@/components/common';
 import { resumeApi } from '@/services/interviewApi';
+import { useUserStore } from '@/store/userStore';
 import type { UserResume } from '@/types/interview';
 
 export interface InterviewStartDialogProps {
   applicationId: number;
   companyName: string;
   jobTitle: string;
-  onStart: (resumeId: number) => Promise<void>;
+  onStart: () => Promise<void>;
   onCancel: () => void;
   starting?: boolean;
 }
 
 export function InterviewStartDialog({
   applicationId: _applicationId,
-  companyName,
-  jobTitle,
+  companyName = '未知公司',
+  jobTitle = '未知职位',
   onStart,
   onCancel,
   starting = false,
 }: InterviewStartDialogProps) {
   const navigate = useNavigate();
+  const { userInfo } = useUserStore();
   const [step, setStep] = useState<'select-resume' | 'confirm'>('select-resume');
   const [resumes, setResumes] = useState<UserResume[]>([]);
   const [selectedResume, setSelectedResume] = useState<UserResume | null>(null);
@@ -30,13 +32,14 @@ export function InterviewStartDialog({
 
   useEffect(() => {
     loadResumes();
-  }, []);
+  }, [userInfo?.id]);
 
   const loadResumes = async () => {
+    if (!userInfo?.id) return;
+    
     try {
       setLoading(true);
-      const userId = 1;
-      const data = await resumeApi.getUserResumes(userId);
+      const data = await resumeApi.getUserResumes(userInfo.id);
       setResumes(data);
       const defaultResume = data.find(r => r.isDefault);
       if (defaultResume) {
@@ -51,7 +54,7 @@ export function InterviewStartDialog({
 
   const handleStart = async () => {
     if (!selectedResume) return;
-    await onStart(selectedResume.id);
+    await onStart();
   };
 
   return (

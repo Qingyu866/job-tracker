@@ -1,9 +1,9 @@
-package com.jobtracker.auth.interceptor;
+package com.jobtracker.interceptor;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.session.SaSession;
-import com.jobtracker.auth.context.UserContext;
-import com.jobtracker.auth.context.UserInfoHolder;
+import com.jobtracker.context.UserContext;
+import com.jobtracker.context.UserInfoHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;

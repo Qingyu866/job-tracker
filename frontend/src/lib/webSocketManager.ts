@@ -11,6 +11,8 @@ type WebSocketEventHandler = (data: any) => void;
 type WebSocketErrorHandler = (error: Event) => void;
 type WebSocketCloseHandler = (event: CloseEvent) => void;
 
+const TOKEN_KEY = 'satoken';
+
 class WebSocketManager {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -24,6 +26,18 @@ class WebSocketManager {
   private onCloseHandler: WebSocketCloseHandler | null = null;
   private onOpenHandler: WebSocketEventHandler | null = null;
 
+  private getWsUrl(): string {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const baseUrl = API_CONFIG.wsURL;
+    
+    if (token) {
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      return `${baseUrl}${separator}token=${encodeURIComponent(token)}`;
+    }
+    
+    return baseUrl;
+  }
+
   connect(): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       console.log('[WebSocket] 已经连接');
@@ -31,8 +45,9 @@ class WebSocketManager {
     }
 
     try {
-      console.log('[WebSocket] 正在连接...', API_CONFIG.wsURL);
-      this.ws = new WebSocket(API_CONFIG.wsURL);
+      const wsUrl = this.getWsUrl();
+      console.log('[WebSocket] 正在连接...', wsUrl.replace(/token=[^&]+/, 'token=***'));
+      this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = (event) => {
         console.log('[WebSocket] 连接成功');
@@ -82,6 +97,19 @@ class WebSocketManager {
         }
 
         if (!this.isManualClose) {
+          if (event.code === 1008) {
+            console.error('[WebSocket] 认证失败，跳转登录页');
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem('userinfo');
+            
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/login' && currentPath !== '/register') {
+              sessionStorage.setItem('redirect_after_login', currentPath);
+              window.location.href = '/login';
+            }
+            return;
+          }
+
           this.scheduleReconnect();
         }
       };

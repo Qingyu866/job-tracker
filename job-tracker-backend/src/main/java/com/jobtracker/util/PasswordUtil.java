@@ -1,8 +1,9 @@
-package com.jobtracker.auth.util;
+package com.jobtracker.util;
 
 import cn.dev33.satoken.secure.SaSecureUtil;
 
 import java.util.Random;
+import java.util.UUID;
 
 /**
  * 密码加密工具类 - 使用 Sa-Token 的 SaSecureUtil
@@ -77,7 +78,7 @@ public class PasswordUtil {
      * 生成随机盐（预留接口）
      */
     public static String generateSalt() {
-        return SaSecureUtil.randomUUID();
+        return UUID.randomUUID().toString();
     }
 
     /**

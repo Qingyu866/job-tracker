@@ -1,6 +1,6 @@
 package com.jobtracker.controller;
 
-import com.jobtracker.common.ApiResponse;
+import com.jobtracker.common.result.Result;
 import com.jobtracker.entity.SkillTag;
 import com.jobtracker.service.SkillTagService;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +29,9 @@ public class SkillTagController {
      * GET /api/skills
      */
     @GetMapping
-    public ApiResponse<List<SkillTag>> getAllSkills() {
+    public Result<List<SkillTag>> getAllSkills() {
         List<SkillTag> skills = skillTagService.getAll();
-        return ApiResponse.success(skills);
+        return Result.success(skills);
     }
 
     /**
@@ -39,9 +39,9 @@ public class SkillTagController {
      * GET /api/skills/category/{category}
      */
     @GetMapping("/category/{category}")
-    public ApiResponse<List<SkillTag>> getSkillsByCategory(@PathVariable String category) {
+    public Result<List<SkillTag>> getSkillsByCategory(@PathVariable String category) {
         List<SkillTag> skills = skillTagService.getByCategory(category);
-        return ApiResponse.success(skills);
+        return Result.success(skills);
     }
 
     /**
@@ -49,9 +49,9 @@ public class SkillTagController {
      * GET /api/skills/search?keyword=xxx
      */
     @GetMapping("/search")
-    public ApiResponse<List<SkillTag>> searchSkills(@RequestParam String keyword) {
+    public Result<List<SkillTag>> searchSkills(@RequestParam String keyword) {
         List<SkillTag> skills = skillTagService.searchByName(keyword);
-        return ApiResponse.success(skills);
+        return Result.success(skills);
     }
 
     /**
@@ -59,12 +59,12 @@ public class SkillTagController {
      * GET /api/skills/{skillId}
      */
     @GetMapping("/{skillId}")
-    public ApiResponse<SkillTag> getSkill(@PathVariable Long skillId) {
+    public Result<SkillTag> getSkill(@PathVariable Long skillId) {
         SkillTag skill = skillTagService.getById(skillId);
         if (skill == null) {
-            return ApiResponse.notFound("技能不存在");
+            return Result.error("技能不存在");
         }
-        return ApiResponse.success(skill);
+        return Result.success(skill);
     }
 
     /**
@@ -72,9 +72,9 @@ public class SkillTagController {
      * POST /api/skills
      */
     @PostMapping
-    public ApiResponse<SkillTag> createSkill(@RequestBody SkillTag skill) {
+    public Result<SkillTag> createSkill(@RequestBody SkillTag skill) {
         SkillTag created = skillTagService.create(skill);
-        return ApiResponse.success("技能创建成功", created);
+        return Result.success("技能创建成功", created);
     }
 
     /**
@@ -82,13 +82,13 @@ public class SkillTagController {
      * PUT /api/skills/{skillId}
      */
     @PutMapping("/{skillId}")
-    public ApiResponse<String> updateSkill(
+    public Result<String> updateSkill(
             @PathVariable Long skillId,
             @RequestBody SkillTag skill
     ) {
         skill.setSkillId(skillId);
         skillTagService.update(skill);
-        return ApiResponse.success("技能更新成功");
+        return Result.success("技能更新成功");
     }
 
     /**
@@ -96,9 +96,9 @@ public class SkillTagController {
      * DELETE /api/skills/{skillId}
      */
     @DeleteMapping("/{skillId}")
-    public ApiResponse<String> deleteSkill(@PathVariable Long skillId) {
+    public Result<String> deleteSkill(@PathVariable Long skillId) {
         skillTagService.delete(skillId);
-        return ApiResponse.success("技能删除成功");
+        return Result.success("技能删除成功");
     }
 
     /**
@@ -106,8 +106,8 @@ public class SkillTagController {
      * GET /api/skills/{skillId}/children
      */
     @GetMapping("/{skillId}/children")
-    public ApiResponse<List<SkillTag>> getChildren(@PathVariable Long skillId) {
+    public Result<List<SkillTag>> getChildren(@PathVariable Long skillId) {
         List<SkillTag> children = skillTagService.getChildren(skillId);
-        return ApiResponse.success(children);
+        return Result.success(children);
     }
 }

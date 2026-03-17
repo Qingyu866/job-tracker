@@ -1,7 +1,7 @@
 package com.jobtracker.controller;
 
-import com.jobtracker.auth.context.UserContext;
-import com.jobtracker.common.ApiResponse;
+import com.jobtracker.context.UserContext;
+import com.jobtracker.common.result.Result;
 import com.jobtracker.entity.OcrCallRecord;
 import com.jobtracker.ocr.OcrHelper;
 import com.jobtracker.ocr.OcrHelper.ResumeInfo;
@@ -45,7 +45,7 @@ public class OcrController {
      * @return 识别结果
      */
     @PostMapping("/recognize")
-    public ApiResponse<Map<String, Object>> recognize(@RequestBody OcrRecognizeRequest request) {
+    public Result<Map<String, Object>> recognize(@RequestBody OcrRecognizeRequest request) {
         try {
             // 解码 Base64
             byte[] imageData = Base64.getDecoder().decode(request.getImageData());
@@ -68,13 +68,13 @@ public class OcrController {
                 response.put("error", result.getErrorMessage());
             }
 
-            return ApiResponse.success(response);
+            return Result.success(response);
 
         } catch (IllegalArgumentException e) {
-            return ApiResponse.error(400, "Base64 编码无效");
+            return Result.error("Base64 编码无效");
         } catch (Exception e) {
             log.error("OCR 识别失败", e);
-            return ApiResponse.error(500, "识别失败: " + e.getMessage());
+            return Result.error("识别失败: " + e.getMessage());
         }
     }
 
@@ -86,15 +86,15 @@ public class OcrController {
      * @return 解析后的简历信息
      */
     @PostMapping("/resume")
-    public ApiResponse<Map<String, Object>> recognizeResume(@RequestParam("file") MultipartFile file) {
+    public Result<Map<String, Object>> recognizeResume(@RequestParam("file") MultipartFile file) {
         try {
             if (file.isEmpty()) {
-                return ApiResponse.error(400, "文件不能为空");
+                return Result.error("文件不能为空");
             }
 
             // 检查文件大小
             if (file.getSize() > 10 * 1024 * 1024) {
-                return ApiResponse.error(400, "文件大小不能超过 10MB");
+                return Result.error("文件大小不能超过 10MB");
             }
 
             byte[] imageData = file.getBytes();
@@ -103,7 +103,7 @@ public class OcrController {
             OcrResult result = ocrService.recognize(imageData, OcrOptions.forResume());
 
             if (!result.isSuccess()) {
-                return ApiResponse.error(500, "识别失败: " + result.getErrorMessage());
+                return Result.error("识别失败: " + result.getErrorMessage());
             }
 
             // 提取结构化信息
@@ -117,11 +117,11 @@ public class OcrController {
             response.put("confidence", result.getConfidence());
             response.put("processingTimeMs", result.getProcessingTimeMs());
 
-            return ApiResponse.success(response);
+            return Result.success(response);
 
         } catch (IOException e) {
             log.error("文件读取失败", e);
-            return ApiResponse.error(500, "文件读取失败");
+            return Result.error("文件读取失败");
         }
     }
 
@@ -134,13 +134,13 @@ public class OcrController {
      * @return 识别结果
      */
     @PostMapping("/jd")
-    public ApiResponse<Map<String, Object>> recognizeJD(
+    public Result<Map<String, Object>> recognizeJD(
             @RequestParam("file") MultipartFile file,
             @RequestParam(required = false) Long applicationId
     ) {
         try {
             if (file.isEmpty()) {
-                return ApiResponse.error(400, "文件不能为空");
+                return Result.error("文件不能为空");
             }
 
             byte[] imageData = file.getBytes();
@@ -149,7 +149,7 @@ public class OcrController {
             OcrResult result = ocrService.recognize(imageData, OcrOptions.forJD());
 
             if (!result.isSuccess()) {
-                return ApiResponse.error(500, "识别失败: " + result.getErrorMessage());
+                return Result.error("识别失败: " + result.getErrorMessage());
             }
 
             // 提取技能标签
@@ -161,11 +161,11 @@ public class OcrController {
             response.put("confidence", result.getConfidence());
             response.put("processingTimeMs", result.getProcessingTimeMs());
 
-            return ApiResponse.success(response);
+            return Result.success(response);
 
         } catch (IOException e) {
             log.error("文件读取失败", e);
-            return ApiResponse.error(500, "文件读取失败");
+            return Result.error("文件读取失败");
         }
     }
 
@@ -176,10 +176,10 @@ public class OcrController {
      * @return 记录列表
      */
     @GetMapping("/records/my")
-    public ApiResponse<List<OcrCallRecord>> getMyRecords() {
+    public Result<List<OcrCallRecord>> getMyRecords() {
         Long userId = UserContext.getCurrentUserId();
         List<OcrCallRecord> records = ocrRecordService.getByUserId(userId);
-        return ApiResponse.success(records);
+        return Result.success(records);
     }
 
     /**
@@ -190,7 +190,7 @@ public class OcrController {
      * @return 记录列表
      */
     @GetMapping("/records")
-    public ApiResponse<List<OcrCallRecord>> getRecords(
+    public Result<List<OcrCallRecord>> getRecords(
             @RequestParam(required = false) String sessionId
     ) {
         List<OcrCallRecord> records;
@@ -208,7 +208,7 @@ public class OcrController {
             }
         }
 
-        return ApiResponse.success(records);
+        return Result.success(records);
     }
 
     /**

@@ -1,24 +1,29 @@
-import { Bell, Menu, Search, Settings, X, BookOpen, Download, FileSpreadsheet, FileJson, XCircle, Loader2, Building2, MessageSquare } from 'lucide-react';
+import { Bell, Menu, Search, Settings, X, BookOpen, Download, FileSpreadsheet, FileJson, XCircle, Loader2, Building2, MessageSquare, LogOut, User, ChevronDown } from 'lucide-react';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { dataApi } from '@/services/dataApi';
 import { toast } from '@/store/toastStore';
 import { useApplicationStore } from '@/store/applicationStore';
 import { useInterviewStore } from '@/store/interviewStore';
+import { useUserStore } from '@/store/userStore';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Avatar } from '@/components/common';
 
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [isExporting, setIsExporting] = useState<'excel' | 'json' | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const { setKeyword } = useApplicationStore();
   const { setSearchKeyword: setInterviewSearchKeyword } = useInterviewStore();
+  const { userInfo, isLoggedIn, logout } = useUserStore();
 
   const handleSearchChange = useCallback((value: string) => {
     setSearchKeyword(value);
@@ -93,13 +98,21 @@ export function Header() {
     }
   };
 
+  const handleLogout = async () => {
+    setShowUserMenu(false);
+    await logout();
+  };
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest('[data-export-menu]')) {
-      setShowExportMenu(false);
-    }
-  };
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-export-menu]')) {
+        setShowExportMenu(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setShowUserMenu(false);
+      }
+    };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
@@ -220,13 +233,72 @@ export function Header() {
           <Bell className="w-5 h-5" />
         </button>
 
-        <button
-          onClick={() => toast.info('设置功能开发中...')}
-          className="p-2 rounded-lg text-paper-600 hover:bg-paper-100 transition-colors hidden md:block"
-          title="设置"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+        {isLoggedIn && userInfo ? (
+          <div className="relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-paper-100 transition-colors"
+            >
+              <Avatar
+                src={userInfo.avatar ?? undefined}
+                alt={userInfo.nickname || userInfo.username}
+                size="sm"
+              />
+              <span className="hidden md:inline text-sm text-paper-700 max-w-[100px] truncate">
+                {userInfo.nickname || userInfo.username}
+              </span>
+              <ChevronDown className="w-4 h-4 text-paper-500 hidden md:inline" />
+            </button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-paper-200 rounded-lg shadow-paper-lg z-50">
+                <div className="p-3 border-b border-paper-100">
+                  <p className="text-sm font-medium text-paper-700 truncate">
+                    {userInfo.nickname || userInfo.username}
+                  </p>
+                  {userInfo.email && (
+                    <p className="text-xs text-paper-500 truncate">{userInfo.email}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    toast.info('个人资料功能开发中...');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-paper-700 hover:bg-paper-50"
+                >
+                  <User className="w-4 h-4" />
+                  个人资料
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    toast.info('设置功能开发中...');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-paper-700 hover:bg-paper-50"
+                >
+                  <Settings className="w-4 h-4" />
+                  设置
+                </button>
+                <div className="border-t border-paper-100" />
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-accent-red hover:bg-paper-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                  退出登录
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/login')}
+            className="px-3 py-1.5 text-sm bg-accent-amber text-paper-800 rounded-lg hover:bg-accent-amber/90 transition-colors"
+          >
+            登录
+          </button>
+        )}
 
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -321,6 +393,36 @@ export function Header() {
                 JSON
               </button>
             </div>
+
+            {isLoggedIn && userInfo && (
+              <div className="pt-2 border-t border-paper-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Avatar
+                    src={userInfo.avatar ?? undefined}
+                    alt={userInfo.nickname || userInfo.username}
+                    size="sm"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-paper-700">
+                      {userInfo.nickname || userInfo.username}
+                    </p>
+                    {userInfo.email && (
+                      <p className="text-xs text-paper-500">{userInfo.email}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 p-2 bg-paper-100 rounded-lg text-accent-red"
+                >
+                  <LogOut className="w-4 h-4" />
+                  退出登录
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

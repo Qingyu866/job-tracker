@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Trophy } from 'lucide-react';
 import { Button, Badge } from '@/components/common';
 import type { MockInterviewSession } from '@/types/interview';
+import { normalizeState } from '@/types/interview';
 
 export interface InterviewHeaderProps {
   session: MockInterviewSession;
@@ -21,19 +22,18 @@ export function InterviewHeader({ session, onExit }: InterviewHeaderProps) {
   };
 
   const getStateLabel = () => {
-    switch (session.state) {
-      case 'CREATED':
+    const normalizedState = normalizeState(session.state);
+    switch (normalizedState) {
+      case 'IDLE':
         return '准备中';
-      case 'INTRODUCTION':
+      case 'WELCOME':
         return '欢迎';
       case 'TECHNICAL_QA':
         return '技术问答';
-      case 'PROJECT_QA':
-        return '项目问答';
-      case 'BEHAVIORAL_QA':
-        return '行为面试';
-      case 'CLOSING':
-        return '结束阶段';
+      case 'SCENARIO':
+        return '情景问答';
+      case 'EVALUATION':
+        return '综合评估';
       case 'FINISHED':
         return '已结束';
       default:

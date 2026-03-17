@@ -29,9 +29,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理业务异常
-     *
-     * @param ex 业务异常
-     * @return 错误响应
      */
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -42,9 +39,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理资源不存在异常
-     *
-     * @param ex 资源不存在异常
-     * @return 错误响应
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -55,9 +49,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理参数校验异常（@Valid）
-     *
-     * @param ex 参数校验异常
-     * @return 错误响应
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -71,9 +62,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理参数绑定异常
-     *
-     * @param ex 参数绑定异常
-     * @return 错误响应
      */
     @ExceptionHandler(BindException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -87,9 +75,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理参数类型不匹配异常
-     *
-     * @param ex 参数类型不匹配异常
-     * @return 错误响应
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -97,14 +82,11 @@ public class GlobalExceptionHandler {
         String errorMsg = String.format("参数 '%s' 类型不匹配，期望类型：%s",
                 ex.getName(), ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "未知");
         log.warn("参数类型不匹配：{}", errorMsg);
-        return Result.error(errorMsg);
+        return Result.error("参数错误：" + errorMsg);
     }
 
     /**
      * 处理非法参数异常
-     *
-     * @param ex 非法参数异常
-     * @return 错误响应
      */
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -115,9 +97,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理非法状态异常
-     *
-     * @param ex 非法状态异常
-     * @return 错误响应
      */
     @ExceptionHandler(IllegalStateException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
@@ -128,9 +107,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理数据库异常
-     *
-     * @param ex 数据库异常
-     * @return 错误响应
      */
     @ExceptionHandler(org.springframework.dao.DataAccessException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -141,9 +117,6 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理 AI 服务异常
-     *
-     * @param ex AI 服务异常
-     * @return 错误响应
      */
     @ExceptionHandler(AIServiceException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
@@ -153,10 +126,37 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理 Sa-Token 未登录异常
+     */
+    @ExceptionHandler(cn.dev33.satoken.exception.NotLoginException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleNotLoginException(cn.dev33.satoken.exception.NotLoginException ex) {
+        log.warn("未登录访问：{}", ex.getMessage());
+        return Result.error(-1, "未登录或登录已过期");
+    }
+
+    /**
+     * 处理 Sa-Token 权限不足异常
+     */
+    @ExceptionHandler(cn.dev33.satoken.exception.NotPermissionException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleNotPermissionException(cn.dev33.satoken.exception.NotPermissionException ex) {
+        log.warn("权限不足：{}", ex.getMessage());
+        return Result.error(-1, "权限不足");
+    }
+
+    /**
+     * 处理 Sa-Token 角色不足异常
+     */
+    @ExceptionHandler(cn.dev33.satoken.exception.NotRoleException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<Void> handleNotRoleException(cn.dev33.satoken.exception.NotRoleException ex) {
+        log.warn("角色不足：{}", ex.getMessage());
+        return Result.error(-1, "角色权限不足");
+    }
+
+    /**
      * 处理未知异常
-     *
-     * @param ex 异常
-     * @return 错误响应
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

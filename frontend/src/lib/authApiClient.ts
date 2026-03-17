@@ -1,5 +1,4 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
-import { API_CONFIG } from '@/utils/constants';
 
 const TOKEN_KEY = 'satoken';
 
@@ -11,12 +10,12 @@ export interface Result<T = any> {
   success: boolean;
 }
 
-class ApiClient {
+class AuthApiClient {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_CONFIG.baseURL,
+      baseURL: 'http://localhost:8080/api',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -36,7 +35,7 @@ class ApiClient {
         return config;
       },
       (error) => {
-        console.error('[API Client] 请求错误:', error);
+        console.error('[Auth API Client] 请求错误:', error);
         return Promise.reject(error);
       }
     );
@@ -50,7 +49,7 @@ class ApiClient {
         }
 
         const error = new Error(data.message || '请求失败');
-        console.error('[API Client] 业务错误:', data);
+        console.error('[Auth API Client] 业务错误:', data);
         return Promise.reject(error);
       },
       (error: AxiosError<Result>) => {
@@ -70,14 +69,14 @@ class ApiClient {
             return Promise.reject(new Error('登录已过期，请重新登录'));
           }
 
-          console.error('[API Client] HTTP 错误:', status, data);
+          console.error('[Auth API Client] HTTP 错误:', status, data);
           const message = data?.message || `HTTP ${status} 错误`;
           return Promise.reject(new Error(message));
         } else if (error.request) {
-          console.error('[API Client] 网络错误:', error.message);
+          console.error('[Auth API Client] 网络错误:', error.message);
           return Promise.reject(new Error('网络连接失败，请检查网络设置'));
         } else {
-          console.error('[API Client] 请求配置错误:', error.message);
+          console.error('[Auth API Client] 请求配置错误:', error.message);
           return Promise.reject(error);
         }
       }
@@ -105,4 +104,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient();
+export const authApiClient = new AuthApiClient();

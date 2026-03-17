@@ -137,9 +137,9 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
     }
   },
 
-  startInterview: async (applicationId: number, userId?: number) => {
+  startInterview: async (applicationId: number) => {
     try {
-      const session = await interviewApi.startInterview(applicationId, userId);
+      const session = await interviewApi.startInterview(applicationId);
       const sessionId = session.sessionId;
 
       set({
@@ -173,14 +173,17 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
       console.error('没有活跃的面试会话');
       return;
     }
+    
+    const tempId = `temp-${Date.now()}`;
     const userMessage: InterviewMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       sessionId,
-      role: 'user',
+      role: 'CANDIDATE',
       content,
       roundNumber: sessionState.session.currentRound,
       createdAt: new Date().toISOString(),
     };
+    
     set({
       sessions: {
         ...get().sessions,
@@ -190,12 +193,14 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
         },
       },
     });
+    
     try {
       const response = await interviewApi.sendMessage(
         sessionId,
         content,
         sessionState.session.currentRound
       );
+      
       const aiMessage: InterviewMessage = {
         id: response.id,
         sessionId,
@@ -205,17 +210,34 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
         skillTag: response.skillTag,
         createdAt: response.createdAt,
       };
+      
       set({
         sessions: {
           ...get().sessions,
           [sessionId]: {
             ...get().sessions[sessionId],
-            messages: [...get().sessions[sessionId].messages, aiMessage],
+            messages: [
+              ...get().sessions[sessionId].messages.filter(m => m.id !== tempId),
+              { ...userMessage, id: `user-${response.id}` },
+              aiMessage,
+            ],
           },
         },
       });
     } catch (error) {
       console.error('发送消息失败:', error);
+      
+      set({
+        sessions: {
+          ...get().sessions,
+          [sessionId]: {
+            ...get().sessions[sessionId],
+            messages: get().sessions[sessionId].messages.filter(m => m.id !== tempId),
+          },
+        },
+      });
+      
+      throw error;
     }
   },
 

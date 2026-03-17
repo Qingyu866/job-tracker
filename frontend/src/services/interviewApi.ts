@@ -10,10 +10,9 @@ import type {
 } from '@/types/interview';
 
 export const interviewApi = {
-  async startInterview(applicationId: number, userId?: number): Promise<MockInterviewSession> {
+  async startInterview(applicationId: number): Promise<MockInterviewSession> {
     const response = await apiClient.post<MockInterviewSession>('/mock-interview/start', {
       applicationId,
-      userId,
     });
     return response.data;
   },
@@ -55,6 +54,19 @@ export const interviewApi = {
   async getReport(sessionId: string): Promise<InterviewReport> {
     const response = await apiClient.get<InterviewReport>(
       `/mock-interview/sessions/${sessionId}/report`
+    );
+    return response.data;
+  },
+
+  async evaluateRound(
+    sessionId: string,
+    roundNumber: number,
+    question: string,
+    answer: string
+  ): Promise<MockInterviewEvaluation> {
+    const response = await apiClient.post<MockInterviewEvaluation>(
+      `/mock-interview/sessions/${sessionId}/evaluate`,
+      { roundNumber, question, answer }
     );
     return response.data;
   },

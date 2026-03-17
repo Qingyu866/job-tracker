@@ -3,7 +3,7 @@ package com.jobtracker.config;
 import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.exception.NotRoleException;
-import com.jobtracker.common.ApiResponse;
+import com.jobtracker.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,7 +25,7 @@ public class SaTokenExceptionHandler {
      * Sa-Token 未登录异常
      */
     @ExceptionHandler(NotLoginException.class)
-    public ApiResponse<Void> handleNotLogin(NotLoginException e) {
+    public Result<Void> handleNotLogin(NotLoginException e) {
         String message = switch (e.getType()) {
             case NotLoginException.NOT_TOKEN -> "未提供 Token";
             case NotLoginException.INVALID_TOKEN -> "Token 无效";
@@ -36,24 +36,24 @@ public class SaTokenExceptionHandler {
         };
 
         log.warn("未登录访问: {}", message);
-        return ApiResponse.unauthorized(message);
+        return Result.error(-1, message);
     }
 
     /**
      * Sa-Token 权限异常
      */
     @ExceptionHandler(NotPermissionException.class)
-    public ApiResponse<Void> handleNotPermission(NotPermissionException e) {
+    public Result<Void> handleNotPermission(NotPermissionException e) {
         log.warn("权限不足: {}", e.getPermission());
-        return ApiResponse.forbidden("权限不足: " + e.getPermission());
+        return Result.error(-1, "权限不足: " + e.getPermission());
     }
 
     /**
      * Sa-Token 角色异常
      */
     @ExceptionHandler(NotRoleException.class)
-    public ApiResponse<Void> handleNotRole(NotRoleException e) {
+    public Result<Void> handleNotRole(NotRoleException e) {
         log.warn("角色权限不足: {}", e.getRole());
-        return ApiResponse.forbidden("需要角色: " + e.getRole());
+        return Result.error(-1, "需要角色: " + e.getRole());
     }
 }

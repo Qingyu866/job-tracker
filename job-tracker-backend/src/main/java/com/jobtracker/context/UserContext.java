@@ -1,4 +1,4 @@
-package com.jobtracker.auth.context;
+package com.jobtracker.context;
 
 import cn.dev33.satoken.stp.StpUtil;
 import cn.dev33.satoken.session.SaSession;
@@ -62,7 +62,11 @@ public class UserContext {
     public static Long getCurrentUserId() {
         UserInfoHolder holder = getCurrentUser();
         if (holder == null || holder.getUserId() == null) {
-            throw new cn.dev33.satoken.exception.NotLoginException("未登录或登录已过期", cn.dev33.satoken.exception.NotLoginException.NOT_TOKEN);
+            throw new cn.dev33.satoken.exception.NotLoginException(
+                    "未登录或登录已过期",
+                    cn.dev33.satoken.exception.NotLoginException.NOT_TOKEN,
+                    null
+            );
         }
         return holder.getUserId();
     }

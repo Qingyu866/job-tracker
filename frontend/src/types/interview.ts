@@ -1,13 +1,34 @@
 export type InterviewState = 
+  | 'IDLE'
+  | 'WELCOME'
+  | 'TECHNICAL_QA'
+  | 'SCENARIO'
+  | 'EVALUATION'
+  | 'FINISHED'
   | 'CREATED'
   | 'INTRODUCTION'
-  | 'TECHNICAL_QA'
   | 'PROJECT_QA'
   | 'BEHAVIORAL_QA'
-  | 'CLOSING'
-  | 'FINISHED';
+  | 'CLOSING';
 
-export type InterviewRole = 'user' | 'assistant' | 'system';
+export function normalizeState(state: string): InterviewState {
+  const stateMap: Record<string, InterviewState> = {
+    'CREATED': 'IDLE',
+    'INTRODUCTION': 'WELCOME',
+    'TECHNICAL_QA': 'TECHNICAL_QA',
+    'PROJECT_QA': 'SCENARIO',
+    'BEHAVIORAL_QA': 'SCENARIO',
+    'CLOSING': 'EVALUATION',
+    'FINISHED': 'FINISHED',
+    'IDLE': 'IDLE',
+    'WELCOME': 'WELCOME',
+    'SCENARIO': 'SCENARIO',
+    'EVALUATION': 'EVALUATION',
+  };
+  return stateMap[state] || 'IDLE';
+}
+
+export type InterviewRole = 'INTERVIEWER' | 'CANDIDATE' | 'system';
 
 export interface MockInterviewSession {
   sessionId: string;

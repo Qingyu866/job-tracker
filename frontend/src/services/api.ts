@@ -1,37 +1,56 @@
-import axios from 'axios';
+import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
-const apiClient = axios.create({
+const TOKEN_KEY = 'satoken';
+
+const apiClient: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8080/api/data',
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// 请求拦截器
-apiClient.interceptors.request.use((config) => {
-  // 可以添加 token
-  // if (config.headers) {
-  //   config.headers.Authorization = `Bearer ${getToken()}`;
-  // }
-  return config;
-});
-
-// 响应拦截器
-apiClient.interceptors.response.use(
-  (response) => response,
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => {
-    console.error('API Error:', error);
-    // 统一错误处理
+    console.error('[API] 请求错误:', error);
+    return Promise.reject(error);
+  }
+);
+
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => {
     if (error.response) {
-      // 服务器返回错误状态码
-      const message = error.response.data?.message || '请求失败';
+      const { status, data } = error.response;
+
+      if (status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem('userinfo');
+
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login' && currentPath !== '/register') {
+          sessionStorage.setItem('redirect_after_login', currentPath);
+          window.location.href = '/login';
+        }
+
+        return Promise.reject(new Error('登录已过期，请重新登录'));
+      }
+
+      console.error('[API] HTTP 错误:', status, data);
+      const message = (data as any)?.message || `HTTP ${status} 错误`;
       return Promise.reject(new Error(message));
     } else if (error.request) {
-      // 请求发送但没有收到响应
-      return Promise.reject(new Error('网络错误，请检查连接'));
+      console.error('[API] 网络错误:', error.message);
+      return Promise.reject(new Error('网络连接失败，请检查网络设置'));
     } else {
-      // 其他错误
+      console.error('[API] 请求配置错误:', error.message);
       return Promise.reject(error);
     }
   }

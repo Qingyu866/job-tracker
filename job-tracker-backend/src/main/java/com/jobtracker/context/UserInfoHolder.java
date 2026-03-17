@@ -1,4 +1,4 @@
-package com.jobtracker.auth.context;
+package com.jobtracker.context;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

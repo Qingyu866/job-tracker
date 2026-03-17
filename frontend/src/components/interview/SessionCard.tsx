@@ -33,13 +33,17 @@ export function SessionCard({
 
   const getStateLabel = (state: InterviewState): string => {
     const labels: Record<InterviewState, string> = {
+      IDLE: '准备中',
+      WELCOME: '欢迎阶段',
+      TECHNICAL_QA: '技术问答',
+      SCENARIO: '场景题',
+      EVALUATION: '评估中',
+      FINISHED: '已结束',
       CREATED: '准备中',
       INTRODUCTION: '自我介绍',
-      TECHNICAL_QA: '技术问答',
       PROJECT_QA: '项目问答',
       BEHAVIORAL_QA: '行为面试',
       CLOSING: '结束阶段',
-      FINISHED: '已结束',
     };
     return labels[state] || '未知';
   };

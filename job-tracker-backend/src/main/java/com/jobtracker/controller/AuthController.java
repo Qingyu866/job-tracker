@@ -1,12 +1,12 @@
-package com.jobtracker.auth.controller;
+package com.jobtracker.controller;
 
-import com.jobtracker.common.ApiResponse;
-import com.jobtracker.auth.dto.ChangePasswordRequest;
-import com.jobtracker.auth.dto.LoginRequest;
-import com.jobtracker.auth.dto.LoginResponse;
-import com.jobtracker.auth.dto.RegisterRequest;
-import com.jobtracker.auth.dto.UserInfo;
-import com.jobtracker.auth.service.AuthService;
+import com.jobtracker.common.result.Result;
+import com.jobtracker.dto.ChangePasswordRequest;
+import com.jobtracker.dto.LoginRequest;
+import com.jobtracker.dto.LoginResponse;
+import com.jobtracker.dto.RegisterRequest;
+import com.jobtracker.dto.UserInfo;
+import com.jobtracker.service.AuthService;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,9 +35,9 @@ public class AuthController {
      * POST /api/auth/login
      */
     @PostMapping("/login")
-    public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ApiResponse.success("登录成功", response);
+        return Result.success("登录成功", response);
     }
 
     /**
@@ -45,9 +45,9 @@ public class AuthController {
      * POST /api/auth/register
      */
     @PostMapping("/register")
-    public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request) {
+    public Result<String> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
-        return ApiResponse.success("注册成功");
+        return Result.success("注册成功", null);
     }
 
     /**
@@ -55,9 +55,9 @@ public class AuthController {
      * GET /api/auth/info
      */
     @GetMapping("/info")
-    public ApiResponse<UserInfo> getCurrentUser() {
+    public Result<UserInfo> getCurrentUser() {
         UserInfo userInfo = authService.getCurrentUserInfo();
-        return ApiResponse.success(userInfo);
+        return Result.success(userInfo);
     }
 
     /**
@@ -65,9 +65,9 @@ public class AuthController {
      * POST /api/auth/logout
      */
     @PostMapping("/logout")
-    public ApiResponse<Void> logout() {
+    public Result<String> logout() {
         StpUtil.logout();
-        return ApiResponse.success("退出成功");
+        return Result.success("退出成功", null);
     }
 
     /**
@@ -75,8 +75,8 @@ public class AuthController {
      * POST /api/auth/change-password
      */
     @PostMapping("/change-password")
-    public ApiResponse<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    public Result<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
-        return ApiResponse.success("密码修改成功");
+        return Result.success("密码修改成功", null);
     }
 }

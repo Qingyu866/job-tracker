@@ -1,19 +1,20 @@
-package com.jobtracker.auth.service;
+package com.jobtracker.service;
 
 import cn.dev33.satoken.secure.SaSecureUtil;
 import cn.dev33.satoken.session.SaSession;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.jobtracker.auth.dto.ChangePasswordRequest;
-import com.jobtracker.auth.dto.LoginRequest;
-import com.jobtracker.auth.dto.LoginResponse;
-import com.jobtracker.auth.dto.RegisterRequest;
-import com.jobtracker.auth.dto.UserInfo;
-import com.jobtracker.auth.util.PasswordUtil;
+import com.jobtracker.context.UserContext;
+import com.jobtracker.dto.ChangePasswordRequest;
+import com.jobtracker.dto.LoginRequest;
+import com.jobtracker.dto.LoginResponse;
+import com.jobtracker.dto.RegisterRequest;
+import com.jobtracker.dto.UserInfo;
+import com.jobtracker.util.PasswordUtil;
 import com.jobtracker.entity.SysUser;
 import com.jobtracker.common.exception.BusinessException;
 import com.jobtracker.mapper.SysUserMapper;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,13 +65,24 @@ public class AuthService {
         // 4. 执行登录
         StpUtil.login(user.getId());
 
-        // 5. 将用户信息存入 Session
-        SaSession session = StpUtil.getSession();
-        session.set("username", user.getUsername());
-        session.set("nickname", user.getNickname());
-        session.set("avatar", user.getAvatar());
-        session.set("email", user.getEmail());
-        session.set("phone", user.getPhone());
+        // 5. 将用户信息存入 Session (true 参数表示如果 session 不存在则创建)
+        SaSession session = StpUtil.getSession(true);
+        // ConcurrentHashMap 不允许 null 值，需要先检查
+        if (user.getUsername() != null) {
+            session.set("username", user.getUsername());
+        }
+        if (user.getNickname() != null) {
+            session.set("nickname", user.getNickname());
+        }
+        if (user.getAvatar() != null) {
+            session.set("avatar", user.getAvatar());
+        }
+        if (user.getEmail() != null) {
+            session.set("email", user.getEmail());
+        }
+        if (user.getPhone() != null) {
+            session.set("phone", user.getPhone());
+        }
 
         // 6. 更新登录信息
         user.setLastLoginTime(LocalDateTime.now());
@@ -130,10 +142,7 @@ public class AuthService {
      * 获取当前用户信息
      */
     public UserInfo getCurrentUserInfo() {
-        Long userId = (Long) StpUtil.getLoginIdDefaultNull();
-        if (userId == null) {
-            throw new BusinessException("未登录");
-        }
+        Long userId = UserContext.getCurrentUserId();
 
         SysUser user = userMapper.selectById(userId);
 
@@ -149,10 +158,7 @@ public class AuthService {
      */
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
-        Long userId = (Long) StpUtil.getLoginIdDefaultNull();
-        if (userId == null) {
-            throw new BusinessException("未登录");
-        }
+        Long userId = UserContext.getCurrentUserId();
 
         SysUser user = userMapper.selectById(userId);
 

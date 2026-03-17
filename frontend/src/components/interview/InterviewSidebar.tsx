@@ -1,6 +1,7 @@
 import { Target, Clock, CheckCircle, Circle } from 'lucide-react';
 import { Progress, Badge, Button } from '@/components/common';
 import type { MockInterviewSession, SkillCovered, SkillPending } from '@/types/interview';
+import { normalizeState } from '@/types/interview';
 
 export interface InterviewSidebarProps {
   session: MockInterviewSession;
@@ -13,7 +14,7 @@ export function InterviewSidebar({
   onFinish,
   finishing = false,
 }: InterviewSidebarProps) {
-  const isFinished = session.state === 'FINISHED';
+  const isFinished = normalizeState(session.state) === 'FINISHED';
   const progressPercentage = session.totalRounds > 0
     ? Math.round((session.currentRound / session.totalRounds) * 100)
     : 0;

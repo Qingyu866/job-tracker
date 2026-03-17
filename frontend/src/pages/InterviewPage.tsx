@@ -5,6 +5,7 @@ import { InterviewHeader, InterviewChat, InterviewSidebar, InterviewStartDialog 
 import { Spinner, Button } from '@/components/common';
 import { Header } from '@/components/layout/Header';
 import { FileText, AlertCircle } from 'lucide-react';
+import { normalizeState } from '@/types/interview';
 
 interface InterviewPageState {
   applicationId?: number;
@@ -38,9 +39,25 @@ export function InterviewPage() {
   const messages = sessionState?.messages || [];
   const loading = sessionState?.loading || false;
 
-  const applicationId = locationState?.applicationId || 1;
-  const companyName = locationState?.companyName || '示例公司';
-  const jobTitle = locationState?.jobTitle || '软件工程师';
+  const applicationId = locationState?.applicationId;
+  const companyName = locationState?.companyName;
+  const jobTitle = locationState?.jobTitle;
+
+  if (!applicationId) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-accent-red mx-auto mb-4" />
+            <h2 className="text-paper-700 text-lg font-medium mb-2">缺少职位信息</h2>
+            <p className="text-paper-500 mb-4">请从职位详情页开始面试</p>
+            <Button onClick={() => navigate('/')}>返回工作台</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (sessionId && sessionId !== 'new') {
@@ -58,17 +75,17 @@ export function InterviewPage() {
   }, [activeSessionId]);
 
   useEffect(() => {
-    if (session?.state === 'FINISHED') {
-      navigate(`/interview/${session.sessionId}/report`);
+    if (normalizeState(session?.state || '') === 'FINISHED') {
+      navigate(`/interview/${session?.sessionId}/report`);
     }
   }, [session?.state, session?.sessionId, navigate]);
 
-  const handleStartInterview = async (resumeId: number) => {
+  const handleStartInterview = async () => {
     setStarting(true);
     setError(null);
     
     try {
-      const newSessionId = await startInterview(applicationId, resumeId);
+      const newSessionId = await startInterview(applicationId);
       setShowStartDialog(false);
       navigate(`/interview/${newSessionId}`, { replace: true });
     } catch (err) {
@@ -142,9 +159,9 @@ export function InterviewPage() {
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <InterviewStartDialog
-            applicationId={applicationId}
-            companyName={companyName}
-            jobTitle={jobTitle}
+            applicationId={applicationId!}
+            companyName={companyName!}
+            jobTitle={jobTitle!}
             onStart={handleStartInterview}
             onCancel={() => navigate('/interviews')}
             starting={starting}

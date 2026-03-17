@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterviewStore } from '@/store/interviewStore';
+import { useUserStore } from '@/store/userStore';
 import { SessionCard } from '@/components/interview/SessionCard';
 import { Button, Spinner } from '@/components/common';
 import { Header } from '@/components/layout/Header';
@@ -11,13 +12,16 @@ type FilterType = 'all' | 'active' | 'finished';
 export function InterviewListPage() {
   const navigate = useNavigate();
   const { sessionList, fetchSessionList, isListLoading, searchKeyword } = useInterviewStore();
+  const { userInfo } = useUserStore();
   
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchSessionList(1);
-  }, []);
+    if (userInfo?.id) {
+      fetchSessionList(userInfo.id);
+    }
+  }, [userInfo?.id]);
 
   const filteredSessions = sessionList.filter((session) => {
     const matchesFilter = 
@@ -71,7 +75,9 @@ export function InterviewListPage() {
         });
       }
       setSelectedSessions(new Set());
-      fetchSessionList(1);
+      if (userInfo?.id) {
+        fetchSessionList(userInfo.id);
+      }
     } catch (error) {
       console.error('删除失败:', error);
     }

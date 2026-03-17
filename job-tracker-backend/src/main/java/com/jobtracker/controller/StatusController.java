@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * @since 1.0.0
  */
 @RestController
-@RequestMapping("/api/status")
+@RequestMapping("/status")
 @RequiredArgsConstructor
 public class StatusController {
 

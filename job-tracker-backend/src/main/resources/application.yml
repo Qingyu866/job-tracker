@@ -25,19 +25,18 @@ spring:
       max-lifetime: 1800000
 
   # Redis Configuration
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: ${REDIS_PASSWORD:}
-      database: 0
-      timeout: 10000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-wait: -1ms
-          max-idle: 8
-          min-idle: 0
+  redis:
+    host: localhost
+    port: 6379
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 10s
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
 
   # Jackson Configuration
   jackson:
@@ -117,7 +116,7 @@ ocr:
 # Sa-Token Configuration
 sa-token:
   # Token 名称（也是 Cookie 名称）
-  token-name: satoken
+  token-name: authorization
   # Token 有效期（秒）- 7天
   timeout: 604800
   # 是否允许同一账号多地同时登录

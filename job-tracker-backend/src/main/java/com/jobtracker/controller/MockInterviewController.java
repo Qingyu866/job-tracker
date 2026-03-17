@@ -1,8 +1,8 @@
 package com.jobtracker.controller;
 
-import com.jobtracker.api.dto.StartInterviewRequest;
-import com.jobtracker.auth.context.UserContext;
-import com.jobtracker.common.ApiResponse;
+import com.jobtracker.dto.StartInterviewRequest;
+import com.jobtracker.context.UserContext;
+import com.jobtracker.common.result.Result;
 import com.jobtracker.entity.*;
 import com.jobtracker.agent.*;
 import com.jobtracker.mapper.ApplicationMapper;
@@ -38,7 +38,7 @@ public class MockInterviewController {
      * POST /api/mock-interview/start
      */
     @PostMapping("/start")
-    public ApiResponse<MockInterviewSession> startInterview(@RequestBody StartInterviewRequest request) {
+    public Result<MockInterviewSession> startInterview(@RequestBody StartInterviewRequest request) {
         // 从 Token 获取当前用户 ID
         Long userId = UserContext.getCurrentUserId();
 
@@ -55,7 +55,7 @@ public class MockInterviewController {
         log.info("创建面试会话成功: sessionId={}, userId={}, applicationId={}",
                 session.getSessionId(), userId, request.getApplicationId());
 
-        return ApiResponse.success("面试会话创建成功", session);
+        return Result.success("面试会话创建成功", session);
     }
 
     /**
@@ -63,12 +63,12 @@ public class MockInterviewController {
      * GET /api/mock-interview/sessions/{sessionId}
      */
     @GetMapping("/sessions/{sessionId}")
-    public ApiResponse<MockInterviewSession> getSession(@PathVariable String sessionId) {
+    public Result<MockInterviewSession> getSession(@PathVariable String sessionId) {
         MockInterviewSession session = interviewService.getSession(sessionId);
         if (session == null) {
-            return ApiResponse.notFound("会话不存在");
+            return Result.error("会话不存在");
         }
-        return ApiResponse.success(session);
+        return Result.success(session);
     }
 
     /**
@@ -76,10 +76,10 @@ public class MockInterviewController {
      * GET /api/mock-interview/sessions/my
      */
     @GetMapping("/sessions/my")
-    public ApiResponse<List<MockInterviewSession>> getMySessions() {
+    public Result<List<MockInterviewSession>> getMySessions() {
         Long userId = UserContext.getCurrentUserId();
         List<MockInterviewSession> sessions = interviewService.getUserSessions(userId);
-        return ApiResponse.success(sessions);
+        return Result.success(sessions);
     }
 
     /**
@@ -89,9 +89,9 @@ public class MockInterviewController {
      */
     @Deprecated(since = "2026-03-17", forRemoval = true)
     @GetMapping("/sessions/user/{userId}")
-    public ApiResponse<List<MockInterviewSession>> getUserSessions(@PathVariable Long userId) {
+    public Result<List<MockInterviewSession>> getUserSessions(@PathVariable Long userId) {
         List<MockInterviewSession> sessions = interviewService.getUserSessions(userId);
-        return ApiResponse.success(sessions);
+        return Result.success(sessions);
     }
 
     /**
@@ -99,7 +99,7 @@ public class MockInterviewController {
      * POST /api/mock-interview/sessions/{sessionId}/message
      */
     @PostMapping("/sessions/{sessionId}/message")
-    public ApiResponse<InterviewMessage> sendMessage(
+    public Result<InterviewMessage> sendMessage(
             @PathVariable String sessionId,
             @RequestBody MessageRequest request
     ) {
@@ -113,7 +113,7 @@ public class MockInterviewController {
         // 获取会话
         MockInterviewSession session = interviewService.getSession(sessionId);
         if (session == null) {
-            return ApiResponse.notFound("会话不存在");
+            return Result.error("会话不存在");
         }
 
         // 获取 Agent
@@ -141,7 +141,7 @@ public class MockInterviewController {
 
         interviewService.nextRound(sessionId);
 
-        return ApiResponse.success(aiMessage);
+        return Result.success(aiMessage);
     }
 
     /**
@@ -149,9 +149,9 @@ public class MockInterviewController {
      * GET /api/mock-interview/sessions/{sessionId}/messages
      */
     @GetMapping("/sessions/{sessionId}/messages")
-    public ApiResponse<List<InterviewMessage>> getMessages(@PathVariable String sessionId) {
+    public Result<List<InterviewMessage>> getMessages(@PathVariable String sessionId) {
         List<InterviewMessage> messages = messageService.getSessionMessages(sessionId);
-        return ApiResponse.success(messages);
+        return Result.success(messages);
     }
 
     /**
@@ -159,7 +159,7 @@ public class MockInterviewController {
      * POST /api/mock-interview/sessions/{sessionId}/finish
      */
     @PostMapping("/sessions/{sessionId}/finish")
-    public ApiResponse<MockInterviewSession> finishInterview(@PathVariable String sessionId) {
+    public Result<MockInterviewSession> finishInterview(@PathVariable String sessionId) {
         interviewService.finishInterview(sessionId);
 
         MockInterviewSession session = interviewService.getSession(sessionId);
@@ -172,7 +172,7 @@ public class MockInterviewController {
         agentFactory.persistMemories(sessionId);
         log.info("面试结束，已持久化所有 Agent 记忆，会话ID: {}", sessionId);
 
-        return ApiResponse.success("面试已结束", session);
+        return Result.success("面试已结束", session);
     }
 
     /**
@@ -180,9 +180,9 @@ public class MockInterviewController {
      * GET /api/mock-interview/sessions/{sessionId}/evaluations
      */
     @GetMapping("/sessions/{sessionId}/evaluations")
-    public ApiResponse<List<MockInterviewEvaluation>> getEvaluations(@PathVariable String sessionId) {
+    public Result<List<MockInterviewEvaluation>> getEvaluations(@PathVariable String sessionId) {
         List<MockInterviewEvaluation> evaluations = evaluationService.getSessionEvaluations(sessionId);
-        return ApiResponse.success(evaluations);
+        return Result.success(evaluations);
     }
 
     /**
@@ -190,19 +190,19 @@ public class MockInterviewController {
      * POST /api/mock-interview/sessions/{sessionId}/evaluate
      */
     @PostMapping("/sessions/{sessionId}/evaluate")
-    public ApiResponse<MockInterviewEvaluation> evaluateAnswer(
+    public Result<MockInterviewEvaluation> evaluateAnswer(
             @PathVariable String sessionId,
             @RequestBody EvaluationRequest request
     ) {
         MockInterviewSession session = interviewService.getSession(sessionId);
         if (session == null) {
-            return ApiResponse.notFound("会话不存在");
+            return Result.error("会话不存在");
         }
 
         // 获取 Agent
         InterviewAgentFactory.InterviewAgents agents = agentFactory.getAgents(sessionId);
         if (agents == null) {
-            return ApiResponse.badRequest("Agent 未初始化");
+            return Result.error("Agent 未初始化");
         }
 
         // 评估回答
@@ -221,7 +221,7 @@ public class MockInterviewController {
 
         evaluationService.createEvaluation(evaluation);
 
-        return ApiResponse.success("评估完成", evaluation);
+        return Result.success("评估完成", evaluation);
     }
 
     /**
