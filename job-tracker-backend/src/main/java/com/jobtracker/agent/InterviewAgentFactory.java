@@ -1,11 +1,14 @@
 package com.jobtracker.agent;
 
 import com.jobtracker.agent.interview.*;
+import com.jobtracker.agent.memory.AgentType;
+import com.jobtracker.agent.memory.InterviewMemoryProvider;
 import com.jobtracker.entity.MockInterviewSession;
 import com.jobtracker.entity.SkillTag;
 import com.jobtracker.entity.UserResume;
 import com.jobtracker.service.SkillTagService;
 import com.jobtracker.service.UserResumeService;
+import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * 动态创建三面试官 Agent 实例，每个面试会话使用独立的 Agent
  * </p>
+ * <p>
+ * 两层隔离：
+ * <ul>
+ *   <li>会话间隔离：不同 MockInterviewSession 的 Agent 互不干扰</li>
+ *   <li>Agent 间隔离：同一会话内三个 Agent 使用独立的 ChatMemory</li>
+ * </ul>
+ * </p>
  *
  * @author Job Tracker Team
  * @version 1.0.0
@@ -35,54 +45,70 @@ public class InterviewAgentFactory {
     private final OpenAiChatModel chatModel;
     private final SkillTagService skillTagService;
     private final UserResumeService resumeService;
+    private final InterviewMemoryProvider memoryProvider;
 
     // Agent 缓存（每个会话一个）
     private final Map<String, InterviewAgents> agentsCache = new ConcurrentHashMap<>();
 
     /**
      * 为面试会话创建三面试官 Agent
+     * <p>
+     * 每个 Agent 使用独立的 ChatMemory，确保记忆隔离
+     * </p>
      *
      * @param session 面试会话
      * @return Agent 组
      */
     public InterviewAgents createAgents(MockInterviewSession session) {
+        String sessionId = session.getSessionId();
+
         // 检查缓存
-        if (agentsCache.containsKey(session.getSessionId())) {
-            return agentsCache.get(session.getSessionId());
+        if (agentsCache.containsKey(sessionId)) {
+            log.debug("从缓存获取 Agent 组，会话ID: {}", sessionId);
+            return agentsCache.get(sessionId);
         }
+
+        // 为每个 Agent 创建独立的 ChatMemory
+        // 关键：使用 (sessionId, agentType) 复合键获取独立记忆
+        ChatMemory mainMemory = memoryProvider.getChatMemory(sessionId, AgentType.MAIN_INTERVIEWER);
+        ChatMemory viceMemory = memoryProvider.getChatMemory(sessionId, AgentType.VICE_INTERVIEWER);
+        ChatMemory evalMemory = memoryProvider.getChatMemory(sessionId, AgentType.EVALUATOR);
 
         // 构建上下文
         String context = buildContext(session);
 
-        // 创建主面试官
+        // 创建主面试官（使用独立记忆）
         MainInterviewerAgent mainInterviewer = AiServices.builder(MainInterviewerAgent.class)
                 .chatModel(chatModel)
+                .chatMemory(mainMemory)  // 仅包含主面试官的历史
                 .systemMessage(buildMainInterviewerSystemMessage(context))
                 .build();
 
-        // 创建副面试官
+        // 创建副面试官（使用独立记忆）
         ViceInterviewerAgent viceInterviewer = AiServices.builder(ViceInterviewerAgent.class)
                 .chatModel(chatModel)
+                .chatMemory(viceMemory)  // 仅包含副面试官的历史
                 .systemMessage(buildViceInterviewerSystemMessage(context))
                 .build();
 
-        // 创建评审专家
+        // 创建评审专家（使用独立记忆）
         ExpertEvaluatorAgent evaluator = AiServices.builder(ExpertEvaluatorAgent.class)
                 .chatModel(chatModel)
+                .chatMemory(evalMemory)  // 仅包含评审专家的历史
                 .systemMessage(buildExpertEvaluatorSystemMessage(context))
                 .build();
 
         InterviewAgents agents = new InterviewAgents(
-                session.getSessionId(),
+                sessionId,
                 mainInterviewer,
                 viceInterviewer,
                 evaluator
         );
 
         // 缓存
-        agentsCache.put(session.getSessionId(), agents);
+        agentsCache.put(sessionId, agents);
 
-        log.info("创建面试 Agent 成功，会话ID: {}", session.getSessionId());
+        log.info("创建面试 Agent 成功（两层隔离），会话ID: {}", sessionId);
 
         return agents;
     }
@@ -95,11 +121,24 @@ public class InterviewAgentFactory {
     }
 
     /**
-     * 清除会话的 Agent 缓存
+     * 清除会话的 Agent 缓存和记忆
+     *
+     * @param sessionId 模拟面试会话ID
      */
     public void clearAgents(String sessionId) {
         agentsCache.remove(sessionId);
-        log.info("清除面试 Agent 缓存，会话ID: {}", sessionId);
+        memoryProvider.clearMemory(sessionId);
+        log.info("清除面试 Agent 和记忆缓存，会话ID: {}", sessionId);
+    }
+
+    /**
+     * 持久化会话的所有 Agent 记忆
+     *
+     * @param sessionId 模拟面试会话ID
+     */
+    public void persistMemories(String sessionId) {
+        memoryProvider.persistAll(sessionId);
+        log.info("持久化会话所有 Agent 记忆，会话ID: {}", sessionId);
     }
 
     /**

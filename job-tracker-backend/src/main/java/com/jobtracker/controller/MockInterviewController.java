@@ -148,6 +148,10 @@ public class MockInterviewController {
         String summary = evaluationService.generateSummary(sessionId);
         // TODO: 保存总结到会话
 
+        // 持久化所有 Agent 的记忆到数据库
+        agentFactory.persistMemories(sessionId);
+        log.info("面试结束，已持久化所有 Agent 记忆，会话ID: {}", sessionId);
+
         return ApiResponse.success("面试已结束", session);
     }
 

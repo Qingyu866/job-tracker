@@ -1,5 +1,6 @@
-import { Plus, Trash2, Star, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Star, AlertCircle, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { JobApplication, InterviewRecord } from '@/types';
 import { dataApi } from '@/services/dataApi';
 import { toast } from '@/store/toastStore';
@@ -19,6 +20,7 @@ export function ApplicationDetailModal({
   onClose,
   onUpdate,
 }: ApplicationDetailModalProps) {
+  const navigate = useNavigate();
   const [showCreateInterview, setShowCreateInterview] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState<InterviewRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +53,17 @@ export function ApplicationDetailModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleStartMockInterview = () => {
+    onClose();
+    navigate('/interview/new', {
+      state: {
+        applicationId: application.id,
+        companyName: application.company?.name || '未知公司',
+        jobTitle: application.jobTitle,
+      }
+    });
   };
 
   return (
@@ -215,24 +228,34 @@ export function ApplicationDetailModal({
             )}
           </div>
 
-          <div className="flex gap-2 pt-4 border-t-2 border-paper-300">
+          <div className="space-y-2 pt-4 border-t-2 border-paper-300">
             <button
-              onClick={() => setShowCreateInterview(true)}
-              disabled={!canAddInterview}
-              title={disabledReason || ''}
-              className="flex-1 px-4 py-3 bg-paper-700 text-paper-50 rounded-lg hover:bg-paper-800 transition-colors font-medium border-2 border-paper-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleStartMockInterview}
+              className="w-full px-4 py-3 bg-accent-amber text-paper-800 rounded-lg hover:bg-accent-amber/90 transition-colors font-medium border-2 border-amber-500 flex items-center justify-center gap-2"
             >
-              <Plus className="w-4 h-4" />
-              添加面试安排
+              <MessageSquare className="w-4 h-4" />
+              开始模拟面试
             </button>
-            <button
-              onClick={handleDelete}
-              disabled={isLoading}
-              className="px-4 py-3 bg-accent-red text-white rounded-lg hover:bg-red-700 transition-colors font-medium border-2 border-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              删除
-            </button>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCreateInterview(true)}
+                disabled={!canAddInterview}
+                title={disabledReason || ''}
+                className="flex-1 px-4 py-3 bg-paper-700 text-paper-50 rounded-lg hover:bg-paper-800 transition-colors font-medium border-2 border-paper-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                添加面试安排
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isLoading}
+                className="px-4 py-3 bg-accent-red text-white rounded-lg hover:bg-red-700 transition-colors font-medium border-2 border-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                删除
+              </button>
+            </div>
           </div>
         </div>
       </Modal>

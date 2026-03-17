@@ -1,6 +1,7 @@
 -- V9__mock_interview_system.sql
 -- 模拟面试系统数据库设计
 -- 创建日期: 2026-03-16
+-- 修复日期: 2026-03-17
 -- 说明：整合模拟面试功能到现有 Job Tracker 系统
 
 -- ================================
@@ -168,7 +169,7 @@ CREATE TABLE IF NOT EXISTS resume_work_experiences (
 -- ================================
 CREATE TABLE IF NOT EXISTS application_skill_mapping (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    application_id BIGINT NOT NULL COMMENT '申请ID',
+    application_id BIGINT UNSIGNED NOT NULL COMMENT '申请ID',
     skill_id BIGINT NOT NULL COMMENT '技能ID',
     priority TINYINT DEFAULT 1 COMMENT '优先级：1-核心, 2-重要, 3-了解',
     source VARCHAR(20) DEFAULT 'MANUAL' COMMENT '来源：MANUAL/JD_AI/PARSED',
@@ -183,26 +184,107 @@ CREATE TABLE IF NOT EXISTS application_skill_mapping (
 -- ================================
 -- 7. 修改 job_applications 表（添加模拟面试相关字段）
 -- ================================
--- 检查并添加字段（如果不存在）
-ALTER TABLE job_applications
-ADD COLUMN IF NOT EXISTS resume_id BIGINT COMMENT '关联的简历ID',
-ADD COLUMN IF NOT EXISTS resume_snapshot JSON COMMENT '简历快照（面试时的简历状态）',
-ADD COLUMN IF NOT EXISTS skills_required JSON COMMENT '岗位技能要求（从JD解析或手动添加）',
-ADD COLUMN IF NOT EXISTS seniority_level VARCHAR(20) DEFAULT 'MIDDLE' COMMENT '岗位级别：JUNIOR/MIDDLE/SENIOR/LEAD',
-ADD COLUMN IF NOT EXISTS interview_prepared BOOLEAN DEFAULT FALSE COMMENT '是否已准备模拟面试',
-ADD COLUMN IF NOT EXISTS mock_interview_count INT DEFAULT 0 COMMENT '模拟面试次数',
-ADD COLUMN IF NOT EXISTS best_mock_score DECIMAL(4,1) COMMENT '最佳模拟面试成绩';
+-- 注意：MySQL 不支持 ADD COLUMN IF NOT EXISTS 语法
+-- 如果列已存在，此语句会报错，可以忽略（或手动删除重复的列后重试）
 
--- 添加索引
-ALTER TABLE job_applications
-ADD INDEX IF NOT EXISTS idx_resume_id (resume_id);
+-- 检查并添加字段的存储过程
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS add_column_if_not_exists$$
+
+CREATE PROCEDURE add_column_if_not_exists()
+BEGIN
+    -- resume_id
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'resume_id'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN resume_id BIGINT COMMENT '关联的简历ID';
+    END IF;
+
+    -- resume_snapshot
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'resume_snapshot'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN resume_snapshot JSON COMMENT '简历快照（面试时的简历状态）';
+    END IF;
+
+    -- skills_required
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'skills_required'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN skills_required JSON COMMENT '岗位技能要求（从JD解析或手动添加）';
+    END IF;
+
+    -- seniority_level
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'seniority_level'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN seniority_level VARCHAR(20) DEFAULT 'MIDDLE' COMMENT '岗位级别：JUNIOR/MIDDLE/SENIOR/LEAD';
+    END IF;
+
+    -- interview_prepared
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'interview_prepared'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN interview_prepared BOOLEAN DEFAULT FALSE COMMENT '是否已准备模拟面试';
+    END IF;
+
+    -- mock_interview_count
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'mock_interview_count'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN mock_interview_count INT DEFAULT 0 COMMENT '模拟面试次数';
+    END IF;
+
+    -- best_mock_score
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+        AND table_name = 'job_applications'
+        AND column_name = 'best_mock_score'
+    ) THEN
+        ALTER TABLE job_applications ADD COLUMN best_mock_score DECIMAL(4,1) COMMENT '最佳模拟面试成绩';
+    END IF;
+
+END$$
+
+DELIMITER ;
+
+-- 执行存储过程添加字段
+CALL add_column_if_not_exists();
+
+-- 清理存储过程
+DROP PROCEDURE IF EXISTS add_column_if_not_exists;
+
+-- 添加索引（如果不存在）
+-- 注意：MySQL 不支持 ADD INDEX IF NOT EXISTS 语法
+-- 如果索引已存在，此语句会报错，可以忽略
+ALTER TABLE job_applications ADD INDEX idx_resume_id (resume_id);
 
 -- ================================
 -- 8. 模拟面试会话表
 -- ================================
 CREATE TABLE IF NOT EXISTS mock_interview_sessions (
     session_id VARCHAR(64) PRIMARY KEY COMMENT '会话ID',
-    application_id BIGINT NOT NULL COMMENT '关联的求职申请ID',
+    application_id BIGINT UNSIGNED NOT NULL COMMENT '关联的求职申请ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
     resume_id BIGINT COMMENT '关联的简历ID',
 

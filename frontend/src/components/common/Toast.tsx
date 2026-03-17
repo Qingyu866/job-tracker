@@ -1,10 +1,12 @@
 import { CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-interface ToastProps {
+export type ToastType = 'success' | 'error' | 'info';
+
+export interface ToastProps {
   id: number;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: ToastType;
   duration?: number;
   onClose?: (id: number) => void;
 }
@@ -15,7 +17,7 @@ export function Toast({ id, message, type, duration = 3000, onClose }: ToastProp
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => onClose?.(id), 300); // 等待动画完成
+      setTimeout(() => onClose?.(id), 300);
     }, duration);
 
     return () => clearTimeout(timer);
@@ -62,9 +64,8 @@ export function Toast({ id, message, type, duration = 3000, onClose }: ToastProp
   );
 }
 
-// Toast 容器组件
-interface ToastContainerProps {
-  toasts: Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>;
+export interface ToastContainerProps {
+  toasts: Array<{ id: number; message: string; type: ToastType }>;
   onClose: (id: number) => void;
 }
 

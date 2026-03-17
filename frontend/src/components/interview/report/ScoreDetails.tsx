@@ -1,0 +1,112 @@
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Award, Lightbulb } from 'lucide-react';
+import { Badge, Progress } from '@/components/common';
+import type { MockInterviewEvaluation } from '@/types/interview';
+
+export interface ScoreDetailsProps {
+  evaluations: MockInterviewEvaluation[];
+}
+
+export function ScoreDetails({ evaluations }: ScoreDetailsProps) {
+  if (evaluations.length === 0) {
+    return (
+      <div className="text-center py-8 text-paper-400">
+        暂无评分数据
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-paper-700 font-medium flex items-center gap-2">
+        <Award className="w-5 h-5 text-accent-amber" />
+        各轮评分明细
+      </h3>
+
+      <div className="space-y-3">
+        {evaluations.map((evaluation, index) => (
+          <EvaluationCard key={evaluation.id} evaluation={evaluation} index={index + 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface EvaluationCardProps {
+  evaluation: MockInterviewEvaluation;
+  index: number;
+}
+
+function EvaluationCard({ evaluation, index }: EvaluationCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const totalScore = evaluation.technicalScore + evaluation.logicScore + evaluation.depthScore;
+  const maxScore = 4 + 3 + 3;
+
+  return (
+    <div className="border border-paper-200 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center justify-between bg-paper-50 hover:bg-paper-100 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary">第{index}轮</Badge>
+          <span className="text-paper-700 font-medium">{evaluation.skillName}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-paper-600 font-medium">
+            {totalScore.toFixed(1)} / {maxScore}
+          </span>
+          {expanded ? (
+            <ChevronUp className="w-5 h-5 text-paper-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-paper-400" />
+          )}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="p-4 space-y-4 border-t border-paper-200">
+          <div className="grid grid-cols-3 gap-4">
+            <ScoreItem label="技术能力" score={evaluation.technicalScore} max={4} />
+            <ScoreItem label="逻辑思维" score={evaluation.logicScore} max={3} />
+            <ScoreItem label="深度理解" score={evaluation.depthScore} max={3} />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-paper-600 text-sm">{evaluation.comment}</p>
+            {evaluation.improvement && (
+              <div className="flex items-start gap-2 p-3 bg-accent-amber/10 rounded-lg">
+                <Lightbulb className="w-4 h-4 text-accent-amber flex-shrink-0 mt-0.5" />
+                <p className="text-paper-600 text-sm">{evaluation.improvement}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ScoreItemProps {
+  label: string;
+  score: number;
+  max: number;
+}
+
+function ScoreItem({ label, score, max }: ScoreItemProps) {
+  const percentage = (score / max) * 100;
+
+  return (
+    <div className="text-center">
+      <p className="text-paper-500 text-xs mb-1">{label}</p>
+      <p className="text-paper-700 font-medium">{score.toFixed(1)} / {max}</p>
+      <Progress
+        value={percentage}
+        size="sm"
+        variant={percentage >= 70 ? 'success' : percentage >= 50 ? 'warning' : 'error'}
+        className="mt-2"
+      />
+    </div>
+  );
+}

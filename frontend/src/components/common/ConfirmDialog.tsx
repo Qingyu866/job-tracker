@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 
-interface ConfirmDialogProps {
+export interface ConfirmDialogProps {
   isOpen: boolean;
   title: string;
   message: string;
