@@ -32,7 +32,7 @@ public class InterviewMemory implements Serializable {
     /**
      * 记忆ID
      */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**

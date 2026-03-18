@@ -11,7 +11,7 @@ type WebSocketEventHandler = (data: any) => void;
 type WebSocketErrorHandler = (error: Event) => void;
 type WebSocketCloseHandler = (event: CloseEvent) => void;
 
-const TOKEN_KEY = 'satoken';
+const TOKEN_KEY = 'authorization';
 
 class WebSocketManager {
   private ws: WebSocket | null = null;

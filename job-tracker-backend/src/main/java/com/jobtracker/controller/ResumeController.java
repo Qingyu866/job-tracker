@@ -2,12 +2,15 @@ package com.jobtracker.controller;
 
 import com.jobtracker.context.UserContext;
 import com.jobtracker.common.result.Result;
+import com.jobtracker.dto.CreateResumeRequest;
+import com.jobtracker.dto.ResumeResponse;
 import com.jobtracker.entity.*;
 import com.jobtracker.service.UserResumeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 /**
@@ -40,6 +43,24 @@ public class ResumeController {
         log.info("创建简历成功: resumeId={}, userId={}", created.getResumeId(), userId);
 
         return Result.success("简历创建成功", created);
+    }
+
+    /**
+     * 创建完整简历（包含关联数据）
+     * POST /api/resumes/complete
+     */
+    @PostMapping("/complete")
+    public Result<ResumeResponse> createCompleteResume(@RequestBody @Valid CreateResumeRequest request) {
+        Long userId = UserContext.getCurrentUserId();
+
+        UserResume resume = resumeService.createCompleteResume(userId, request);
+
+        // 构建完整响应
+        ResumeResponse response = buildResumeResponse(resume);
+
+        log.info("创建完整简历成功: resumeId={}, userId={}", resume.getResumeId(), userId);
+
+        return Result.success("简历创建成功", response);
     }
 
     /**
@@ -160,5 +181,46 @@ public class ResumeController {
     public Result<List<ResumeSkill>> getSkills(@PathVariable Long resumeId) {
         List<ResumeSkill> skills = resumeService.getSkills(resumeId);
         return Result.success(skills);
+    }
+
+    /**
+     * 获取完整简历详情（包含关联数据）
+     * GET /api/resumes/{resumeId}/complete
+     */
+    @GetMapping("/{resumeId}/complete")
+    public Result<ResumeResponse> getCompleteResume(@PathVariable Long resumeId) {
+        UserResume resume = resumeService.getById(resumeId);
+        if (resume == null) {
+            return Result.error("简历不存在");
+        }
+
+        ResumeResponse response = buildResumeResponse(resume);
+
+        return Result.success(response);
+    }
+
+    /**
+     * 构建完整简历响应
+     */
+    private ResumeResponse buildResumeResponse(UserResume resume) {
+        List<ResumeWorkExperience> workExperiences = resumeService.getWorkExperiences(resume.getResumeId());
+        List<ResumeProject> projects = resumeService.getProjects(resume.getResumeId());
+        List<ResumeSkill> skills = resumeService.getSkills(resume.getResumeId());
+
+        return ResumeResponse.builder()
+                .resumeId(resume.getResumeId())
+                .userId(resume.getUserId())
+                .resumeName(resume.getResumeName())
+                .isDefault(resume.getIsDefault())
+                .workYears(resume.getWorkYears())
+                .currentPosition(resume.getCurrentPosition())
+                .targetLevel(resume.getTargetLevel())
+                .summary(resume.getSummary())
+                .workExperiences(workExperiences)
+                .projects(projects)
+                .skills(skills)
+                .createdAt(resume.getCreatedAt())
+                .updatedAt(resume.getUpdatedAt())
+                .build();
     }
 }

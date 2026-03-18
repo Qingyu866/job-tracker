@@ -16,10 +16,10 @@ const sizeStyles: Record<'sm' | 'md' | 'lg', string> = {
 };
 
 const variantStyles: Record<'default' | 'success' | 'warning' | 'error', string> = {
-  default: 'bg-accent-amber',
-  success: 'bg-accent-green',
+  default: 'bg-amber-400',
+  success: 'bg-green-500',
   warning: 'bg-amber-500',
-  error: 'bg-accent-red',
+  error: 'bg-red-500',
 };
 
 export function Progress({
@@ -73,10 +73,10 @@ export interface CircularProgressProps {
 }
 
 const circularVariantStyles: Record<'default' | 'success' | 'warning' | 'error', string> = {
-  default: 'text-accent-amber',
-  success: 'text-accent-green',
+  default: 'text-amber-400',
+  success: 'text-green-500',
   warning: 'text-amber-500',
-  error: 'text-accent-red',
+  error: 'text-red-500',
 };
 
 export function CircularProgress({

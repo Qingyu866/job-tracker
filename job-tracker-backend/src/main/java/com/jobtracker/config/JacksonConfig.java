@@ -2,6 +2,7 @@ package com.jobtracker.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
@@ -40,6 +41,11 @@ public class JacksonConfig {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
         javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(dateTimeFormatter));
         javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(dateTimeFormatter));
+
+        // 配置 Long 类型序列化为 String，避免前端 JavaScript 精度丢失
+        // JavaScript 的 Number 类型最大安全整数是 2^53 - 1，雪花算法生成的 Long 类型会超出这个范围
+        javaTimeModule.addSerializer(Long.class, ToStringSerializer.instance);
+        javaTimeModule.addSerializer(Long.TYPE, ToStringSerializer.instance);
 
         ObjectMapper objectMapper = builder.createXmlMapper(false)
                 .build()

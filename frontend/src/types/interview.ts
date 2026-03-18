@@ -82,6 +82,8 @@ export interface MockInterviewEvaluation {
   depthScore: number;
   comment: string;
   improvement?: string;
+  questionText?: string;
+  userAnswer?: string;
   createdAt: string;
 }
 

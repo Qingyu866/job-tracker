@@ -35,11 +35,14 @@ function stringToColor(str: string): string {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    'bg-accent-amber',
-    'bg-accent-green',
-    'bg-accent-blue',
-    'bg-accent-purple',
-    'bg-accent-red',
+    '#d4a574',
+    '#8fbc8f',
+    '#7ba3b5',
+    '#9f7fb5',
+    '#e53d3d',
+    '#f59e0b',
+    '#10b981',
+    '#3b82f6',
   ];
   return colors[Math.abs(hash) % colors.length];
 }
@@ -51,11 +54,12 @@ export function Avatar({
   size = 'md',
   fallbackIcon = false,
   className,
+  style,
   ...props
 }: AvatarProps) {
   const styles = sizeStyles[size];
   const initials = name ? getInitials(name) : null;
-  const bgColor = name ? stringToColor(name) : 'bg-paper-300';
+  const bgColor = name ? stringToColor(name) : '#c9bd9f';
 
   if (src) {
     return (
@@ -83,9 +87,9 @@ export function Avatar({
           'rounded-full flex items-center justify-center text-white font-medium',
           styles.container,
           styles.text,
-          bgColor,
           className
         )}
+        style={{ backgroundColor: bgColor, ...style }}
         {...props}
       >
         {initials}

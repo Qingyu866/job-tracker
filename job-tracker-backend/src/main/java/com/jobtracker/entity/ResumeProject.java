@@ -28,7 +28,7 @@ public class ResumeProject {
     /**
      * 项目ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long projectId;
 
     /**

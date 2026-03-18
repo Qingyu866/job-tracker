@@ -22,8 +22,8 @@ export function ResumeCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border-2 shadow-paper hover:shadow-paper-md transition-all cursor-pointer overflow-hidden relative ${
-        selected ? 'border-accent-amber ring-2 ring-accent-amber/20' : 'border-paper-300 hover:border-paper-400'
+      className={`rounded-xl border-2 shadow-paper hover:shadow-paper-md transition-all cursor-pointer overflow-hidden relative hover:bg-[#f5f0e6] ${
+        selected ? 'border-accent-amber ring-2 ring-accent-amber/20' : 'border-paper-400 hover:border-paper-500'
       }`}
       onClick={onSelect}
     >

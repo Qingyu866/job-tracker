@@ -34,7 +34,7 @@ export interface SkillItem {
 }
 
 export interface UserResume {
-  id: number;
+  resumeId: number;
   userId: number;
   resumeName: string;
   workYears?: number;

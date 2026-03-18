@@ -28,7 +28,7 @@ public class ResumeWorkExperience {
     /**
      * 工作经历ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long experienceId;
 
     /**

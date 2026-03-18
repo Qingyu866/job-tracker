@@ -1,5 +1,6 @@
 package com.jobtracker.dto;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -17,4 +18,9 @@ public class StartInterviewRequest {
      */
     @NotNull(message = "申请ID不能为空")
     private Long applicationId;
+
+    /**
+     * 关联的简历ID
+     */
+    private Long resumeId;
 }

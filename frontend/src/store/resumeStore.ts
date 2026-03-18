@@ -37,7 +37,7 @@ const initialFormData: Partial<CreateResumeRequest> = {
   skills: [],
 };
 
-export const useResumeStore = create<ResumeState>((set, get) => ({
+export const useResumeStore = create<ResumeState>((set) => ({
   resumes: [],
   currentResume: null,
   listLoading: false,
@@ -107,7 +107,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       const updatedResume = await resumeApi.getDetail(resumeId);
       set((state) => ({
         resumes: state.resumes.map((r) => 
-          r.id === resumeId ? updatedResume : r
+          r.resumeId === resumeId ? updatedResume : r
         ),
         currentResume: updatedResume,
         saving: false,
@@ -127,8 +127,8 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
     try {
       await resumeApi.delete(resumeId);
       set((state) => ({
-        resumes: state.resumes.filter((r) => r.id !== resumeId),
-        currentResume: state.currentResume?.id === resumeId 
+        resumes: state.resumes.filter((r) => r.resumeId !== resumeId),
+        currentResume: state.currentResume?.resumeId === resumeId 
           ? null 
           : state.currentResume,
         deleting: false,
@@ -149,7 +149,7 @@ export const useResumeStore = create<ResumeState>((set, get) => ({
       set((state) => ({
         resumes: state.resumes.map((r) => ({
           ...r,
-          isDefault: r.id === resumeId,
+          isDefault: r.resumeId === resumeId,
         })),
       }));
     } catch (error) {

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, type KeyboardEvent } from 'react';
 import { clsx } from 'clsx';
 import { Send } from 'lucide-react';
-import { Avatar, Button, Spinner } from '@/components/common';
+import { Button, Spinner } from '@/components/common';
 import type { InterviewMessage, MockInterviewSession } from '@/types/interview';
 import { normalizeState } from '@/types/interview';
 
@@ -139,18 +139,22 @@ function ChatMessageItem({ message }: { message: InterviewMessage }) {
 
   return (
     <div className={clsx('flex gap-3', isUser && 'flex-row-reverse')}>
-      <Avatar
-        name={isUser ? '你' : '面试官'}
-        size="sm"
-        className="flex-shrink-0"
-      />
+      <div
+        className={clsx(
+          'rounded-full flex items-center justify-center text-white font-medium w-8 h-8 text-sm flex-shrink-0'
+        )}
+        style={{ backgroundColor: isUser ? '#d4a574' : '#e53d3d' }}
+      >
+        {isUser ? '你' : '面'}
+      </div>
       <div
         className={clsx(
           'max-w-[75%] rounded-xl px-4 py-3',
           isUser
-            ? 'bg-accent-amber text-paper-800'
+            ? 'text-paper-800'
             : 'bg-paper-100 text-paper-700'
         )}
+        style={isUser ? { backgroundColor: '#d4a574' } : undefined}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
         {message.skillTag && (

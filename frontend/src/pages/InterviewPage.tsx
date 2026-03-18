@@ -35,14 +35,15 @@ export function InterviewPage() {
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sessionState = activeSessionId ? sessions[activeSessionId] : null;
+  const currentSessionId = sessionId === 'new' ? null : sessionId;
+  const sessionState = currentSessionId ? sessions[currentSessionId] : null;
   const session = sessionState?.session;
   const messages = sessionState?.messages || [];
   const loading = sessionState?.loading || false;
 
-  const applicationId = locationState?.applicationId;
-  const companyName = locationState?.companyName;
-  const jobTitle = locationState?.jobTitle;
+  const applicationId = locationState?.applicationId || session?.applicationId;
+  const companyName = locationState?.companyName || session?.companyName;
+  const jobTitle = locationState?.jobTitle || session?.jobTitle;
 
   console.log('InterviewPage render:', { 
     sessionId, 
@@ -51,27 +52,11 @@ export function InterviewPage() {
     jobTitle,
     showStartDialog,
     activeSessionId,
+    currentSessionId,
     sessions,
     loading,
     session
   });
-
-  if (!applicationId) {
-    console.warn('InterviewPage: No applicationId, location.state:', location.state);
-    return (
-      <div className="h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-accent-red mx-auto mb-4" />
-            <h2 className="text-paper-700 text-lg font-medium mb-2">缺少职位信息</h2>
-            <p className="text-paper-500 mb-4">请从职位详情页开始面试</p>
-            <Button onClick={() => navigate('/')}>返回工作台</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   useEffect(() => {
     if (sessionId && sessionId !== 'new') {
@@ -79,8 +64,6 @@ export function InterviewPage() {
         setError('加载面试会话失败');
         console.error(err);
       });
-    } else if (sessionId === 'new') {
-      setShowStartDialog(true);
     }
   }, [sessionId]);
 
@@ -89,26 +72,104 @@ export function InterviewPage() {
   }, [activeSessionId]);
 
   useEffect(() => {
-    if (normalizeState(session?.state || '') === 'FINISHED') {
-      navigate(`/interview/${session?.sessionId}/report`);
+    if (currentSessionId && session && normalizeState(session.state || '') === 'FINISHED') {
+      navigate(`/interview/${currentSessionId}/report`, { replace: true });
     }
-  }, [session?.state, session?.sessionId, navigate]);
+  }, [session?.state, currentSessionId, navigate]);
 
-  const handleStartInterview = async () => {
-    setStarting(true);
-    setError(null);
-    
-    try {
-      const newSessionId = await startInterview(applicationId);
-      setShowStartDialog(false);
-      navigate(`/interview/${newSessionId}`, { replace: true });
-    } catch (err) {
-      setError('开始面试失败，请重试');
-      console.error(err);
-    } finally {
-      setStarting(false);
+  if (loading && !session && sessionId !== 'new') {
+    return (
+      <div className="h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Spinner size="xl" />
+            <p className="text-paper-500 mt-4">加载面试会话...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionId === 'new') {
+    if (!applicationId) {
+      return (
+        <div className="h-screen flex flex-col">
+          <Header />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 text-accent-red mx-auto mb-4" />
+              <h2 className="text-paper-700 text-lg font-medium mb-2">缺少职位信息</h2>
+              <p className="text-paper-500 mb-4">请从职位详情页开始面试</p>
+              <Button onClick={() => navigate('/')}>返回工作台</Button>
+            </div>
+          </div>
+        </div>
+      );
     }
-  };
+    
+    return (
+      <div className="h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <InterviewStartDialog
+            applicationId={applicationId!}
+            companyName={companyName!}
+            jobTitle={jobTitle!}
+            onStart={async () => {
+              setStarting(true);
+              setError(null);
+              
+              try {
+                const newSessionId = await startInterview(applicationId!);
+                setShowStartDialog(false);
+                navigate(`/interview/${newSessionId}`, { replace: true });
+              } catch (err) {
+                setError('开始面试失败，请重试');
+                console.error(err);
+              } finally {
+                setStarting(false);
+              }
+            }}
+            onCancel={() => navigate('/interviews')}
+            starting={starting}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-accent-red mx-auto mb-4" />
+            <h2 className="text-paper-700 text-lg font-medium mb-2">出错了</h2>
+            <p className="text-paper-500 mb-4">{error}</p>
+            <Button onClick={() => navigate('/interviews')}>返回列表</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <FileText className="w-12 h-12 text-paper-300 mx-auto mb-4" />
+            <h2 className="text-paper-700 text-lg font-medium mb-2">面试会话不存在</h2>
+            <p className="text-paper-500 mb-4">该面试会话可能已被删除</p>
+            <Button onClick={() => navigate('/interviews')}>返回列表</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleFinishInterview = async () => {
     if (!activeSessionId) return;
@@ -136,70 +197,6 @@ export function InterviewPage() {
     }
     navigate('/interviews');
   };
-
-  if (error) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-accent-red mx-auto mb-4" />
-            <h2 className="text-paper-700 text-lg font-medium mb-2">出错了</h2>
-            <p className="text-paper-500 mb-4">{error}</p>
-            <Button onClick={() => navigate('/interviews')}>返回列表</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading && !session) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Spinner size="xl" />
-            <p className="text-paper-500 mt-4">加载面试会话...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (sessionId === 'new' || sessionId === undefined || showStartDialog) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <InterviewStartDialog
-            applicationId={applicationId!}
-            companyName={companyName!}
-            jobTitle={jobTitle!}
-            onStart={handleStartInterview}
-            onCancel={() => navigate('/interviews')}
-            starting={starting}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <FileText className="w-12 h-12 text-paper-300 mx-auto mb-4" />
-            <h2 className="text-paper-700 text-lg font-medium mb-2">面试会话不存在</h2>
-            <p className="text-paper-500 mb-4">该面试会话可能已被删除</p>
-            <Button onClick={() => navigate('/interviews')}>返回列表</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-screen flex flex-col">

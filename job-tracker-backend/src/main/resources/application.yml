@@ -23,20 +23,20 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-
   # Redis Configuration
-  redis:
-    host: localhost
-    port: 6379
-    password: ${REDIS_PASSWORD:}
-    database: 0
-    timeout: 10s
-    lettuce:
-      pool:
-        max-active: 8
-        max-wait: -1ms
-        max-idle: 8
-        min-idle: 0
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 10s
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
 
   # Jackson Configuration
   jackson:
@@ -45,6 +45,7 @@ spring:
     serialization:
       write-dates-as-timestamps: false
     default-property-inclusion: non_null
+    # Long 类型序列化在 JacksonConfig.java 中配置（使用 ToStringSerializer）
 
 # MyBatis Plus Configuration
 mybatis-plus:
@@ -56,7 +57,7 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
-      id-type: auto
+      id-type: assign_id  # 使用雪花算法生成ID
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
@@ -81,7 +82,7 @@ langchain4j:
     base-url: ${LM_STUDIO_BASE_URL:http://127.0.0.1:1234/v1}
     api-key: ${LM_STUDIO_API_KEY:lm-studio}
     model-name: ${LM_STUDIO_MODEL:google/gemma-3-4b}
-    temperature: 0.7
+    temperature: 0.1
     timeout: 300
     max-retries: 1
   # Chat Memory Configuration

@@ -1,6 +1,6 @@
 import { authApiClient } from '@/lib/authApiClient';
 
-const TOKEN_KEY = 'satoken';
+const TOKEN_KEY = 'authorization';
 const USER_INFO_KEY = 'userinfo';
 
 export interface UserInfo {

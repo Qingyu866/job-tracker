@@ -12,6 +12,7 @@ export interface ImageDropZoneProps {
   maxSize?: number;
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 export function ImageDropZone({
@@ -21,6 +22,7 @@ export function ImageDropZone({
   maxSize = 10 * 1024 * 1024,
   disabled = false,
   className,
+  compact = false,
 }: ImageDropZoneProps) {
   const [dragging, setDragging] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -100,16 +102,63 @@ export function ImageDropZone({
     }
   };
 
-  const getModeHint = () => {
-    switch (ocrMode) {
-      case 'resume':
-        return '上传简历图片，自动解析简历信息';
-      case 'jd':
-        return '上传职位描述图片，自动提取技能要求';
-      default:
-        return '上传图片进行文字识别';
-    }
-  };
+  if (compact) {
+    return (
+      <div
+        className={clsx(
+          'relative border-2 border-dashed rounded-lg p-3 text-center cursor-pointer',
+          'transition-all duration-200',
+          'bg-[#f5f0e6]',
+          dragging && 'border-accent-amber bg-accent-amber/5',
+          !dragging && !disabled && 'border-paper-400 hover:border-accent-amber hover:bg-paper-100',
+          disabled && 'opacity-50 cursor-not-allowed',
+          processing && 'cursor-wait',
+          className
+        )}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={handleClick}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={accept}
+          onChange={handleFileSelect}
+          disabled={disabled || processing}
+          className="hidden"
+        />
+
+        {processing ? (
+          <div className="flex flex-col items-center gap-2">
+            <Spinner size="sm" />
+            <p className="text-paper-600 text-xs">识别中...</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-paper-200 flex items-center justify-center">
+              {error ? (
+                <AlertCircle className="w-4 h-4 text-accent-red" />
+              ) : (
+                <Upload className="w-4 h-4 text-paper-500" />
+              )}
+            </div>
+            
+            <div>
+              <p className="text-paper-700 text-xs font-medium">
+                {error || '拖拽或点击上传'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1 text-paper-400 text-xs">
+              <FileText className="w-3 h-3" />
+              <span>JPG/PNG/PDF</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -118,7 +167,7 @@ export function ImageDropZone({
         'transition-all duration-200',
         'bg-paper-50',
         dragging && 'border-accent-amber bg-accent-amber/5',
-        !dragging && !disabled && 'border-paper-300 hover:border-accent-amber hover:bg-paper-100',
+        !dragging && !disabled && 'border-paper-400 hover:border-accent-amber hover:bg-paper-100',
         disabled && 'opacity-50 cursor-not-allowed',
         processing && 'cursor-wait',
         className
@@ -160,7 +209,7 @@ export function ImageDropZone({
             {!error && (
               <>
                 <p className="text-paper-500 text-sm mt-1">或点击选择文件</p>
-                <p className="text-paper-400 text-xs mt-2">{getModeHint()}</p>
+                <p className="text-paper-400 text-xs mt-2">上传图片进行文字识别</p>
               </>
             )}
           </div>

@@ -1,15 +1,26 @@
 import { useState } from 'react';
+import { Briefcase, FileText, Zap, TrendingUp } from 'lucide-react';
 import { useApplicationStore } from '@/store/applicationStore';
-import { STATUS_CONFIG } from '@/utils/constants';
 import { CompanyAutocomplete } from './CompanyAutocomplete';
-import { Briefcase, MapPin, DollarSign, Link, FileText } from 'lucide-react';
+import { ResumeSelect } from './ResumeSelect';
+import { STATUS_CONFIG } from '@/utils/constants';
 
 interface CreateApplicationFormProps {
   onClose: () => void;
 }
 
+const SENIORITY_OPTIONS = [
+  { value: 'JUNIOR', label: '初级 (0-2年)' },
+  { value: 'MIDDLE', label: '中级 (2-5年)' },
+  { value: 'SENIOR', label: '高级 (5-8年)' },
+  { value: 'LEAD', label: '技术负责人 (8年+)' },
+];
+
+type SeniorityLevel = 'JUNIOR' | 'MIDDLE' | 'SENIOR' | 'LEAD';
+
 export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
   const { createApplication } = useApplicationStore();
+  
   const [formData, setFormData] = useState({
     companyId: 0,
     companyName: '',
@@ -25,7 +36,14 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
     applicationDate: new Date().toISOString().split('T')[0],
     priority: 1,
     notes: '',
+    resumeId: undefined as number | undefined,
+    seniorityLevel: '' as SeniorityLevel | '',
+    skillsRequired: '',
   });
+
+  const handleResumeChange = (resumeId: number | undefined) => {
+    setFormData(prev => ({ ...prev, resumeId }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +53,9 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
         companyId: formData.companyId || undefined,
         salaryMin: formData.salaryMin ? Number(formData.salaryMin) : undefined,
         salaryMax: formData.salaryMax ? Number(formData.salaryMax) : undefined,
+        resumeId: formData.resumeId || undefined,
+        seniorityLevel: formData.seniorityLevel || undefined,
+        skillsRequired: formData.skillsRequired || undefined,
       });
       onClose();
     } catch (error) {
@@ -44,7 +65,6 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* 基本信息 */}
       <div className="space-y-4">
         <div className="text-sm font-semibold text-paper-700 border-b-2 border-paper-300 pb-2">
           基本信息
@@ -82,30 +102,64 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-paper-800 mb-2">
+              <div className="flex items-center gap-1">
+                <TrendingUp className="w-4 h-4" />
+                岗位级别
+              </div>
+            </label>
+            <select
+              value={formData.seniorityLevel}
+              onChange={(e) => setFormData({ ...formData, seniorityLevel: e.target.value as SeniorityLevel })}
+              className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
+            >
+              <option value="">请选择</option>
+              {SENIORITY_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-paper-800 mb-2">
+              <div className="flex items-center gap-1">
+                <FileText className="w-4 h-4" />
+                关联简历
+              </div>
+            </label>
+            <ResumeSelect
+              value={formData.resumeId}
+              onChange={handleResumeChange}
+            />
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-semibold text-paper-800 mb-2">
             <div className="flex items-center gap-1">
-              <FileText className="w-4 h-4" />
-              职位描述
+              <Zap className="w-4 h-4 text-amber-500" />
+              技能要求
             </div>
           </label>
-          <textarea
-            placeholder="简要描述职位职责和要求（可选）"
-            value={formData.jobDescription}
-            onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-            rows={3}
-            className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base resize-none"
+          <input
+            type="text"
+            placeholder="例如：React,TypeScript,Node.js（逗号分隔）"
+            value={formData.skillsRequired}
+            onChange={(e) => setFormData({ ...formData, skillsRequired: e.target.value })}
+            className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
           />
+          <p className="text-xs text-paper-500 mt-1">从JD中提取的关键技能，用于模拟面试</p>
         </div>
       </div>
 
-      {/* 工作详情 */}
       <div className="space-y-4">
         <div className="text-sm font-semibold text-paper-700 border-b-2 border-paper-300 pb-2">
-          工作详情
+          职位详情
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-paper-800 mb-2">
               工作类型
@@ -119,21 +173,17 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
               <option value="全职">全职</option>
               <option value="兼职">兼职</option>
               <option value="实习">实习</option>
-              <option value="合同">合同工</option>
-              <option value="外包">外包</option>
+              <option value="合同">合同</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-paper-800 mb-2">
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                工作地点
-              </div>
+              工作地点
             </label>
             <input
               type="text"
-              placeholder="例如：北京、上海"
+              placeholder="例如：北京"
               value={formData.workLocation}
               onChange={(e) => setFormData({ ...formData, workLocation: e.target.value })}
               className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
@@ -141,37 +191,32 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="col-span-1">
             <label className="block text-sm font-semibold text-paper-800 mb-2">
-              <div className="flex items-center gap-1">
-                <DollarSign className="w-4 h-4" />
-                薪资下限
-              </div>
+              薪资下限
             </label>
             <input
               type="number"
-              placeholder="例如：15k"
+              placeholder="例如：15"
               value={formData.salaryMin}
               onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value })}
               className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
             />
           </div>
-
-          <div>
+          <div className="col-span-1">
             <label className="block text-sm font-semibold text-paper-800 mb-2">
               薪资上限
             </label>
             <input
               type="number"
-              placeholder="例如：25k"
+              placeholder="例如：25"
               value={formData.salaryMax}
               onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value })}
               className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
             />
           </div>
-
-          <div>
+          <div className="col-span-1">
             <label className="block text-sm font-semibold text-paper-800 mb-2">
               货币
             </label>
@@ -180,42 +225,49 @@ export function CreateApplicationForm({ onClose }: CreateApplicationFormProps) {
               onChange={(e) => setFormData({ ...formData, salaryCurrency: e.target.value })}
               className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
             >
-              <option value="CNY">CNY (¥)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
+              <option value="CNY">CNY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
             </select>
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-paper-800 mb-2">
-            <div className="flex items-center gap-1">
-              <Link className="w-4 h-4" />
-              职位链接
-            </div>
+            职位链接
           </label>
           <input
             type="url"
-            placeholder="https://example.com/job/123"
+            placeholder="例如：https://jobs.example.com/123"
             value={formData.jobUrl}
             onChange={(e) => setFormData({ ...formData, jobUrl: e.target.value })}
             className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base"
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-paper-800 mb-2">
+            职位描述
+          </label>
+          <textarea
+            placeholder="粘贴职位描述（可选）"
+            value={formData.jobDescription}
+            onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
+            rows={4}
+            className="w-full px-4 py-3 border-2 border-paper-400 rounded-lg bg-[#f5f0e6] text-paper-800 placeholder:text-paper-500 focus:outline-none focus:ring-2 focus:ring-paper-600 focus:border-paper-600 text-base resize-none"
+          />
+        </div>
       </div>
 
-      {/* 申请信息 */}
       <div className="space-y-4">
         <div className="text-sm font-semibold text-paper-700 border-b-2 border-paper-300 pb-2">
-          申请信息
+          申请状态
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-paper-800 mb-2">
-              状态
+              申请状态
             </label>
             <select
               value={formData.status}

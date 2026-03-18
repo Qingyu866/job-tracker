@@ -1,7 +1,7 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { API_CONFIG } from '@/utils/constants';
 
-const TOKEN_KEY = 'satoken';
+const TOKEN_KEY = 'authorization';
 
 export interface Result<T = any> {
   code: number;

@@ -21,7 +21,7 @@ export const dataApi = {
    * 搜索申请（多字段搜索）
    */
   searchApplications: async (keyword: string): Promise<JobApplication[]> => {
-    const response = await apiClient.get<any>('/applications/search', {
+    const response = await apiClient.get<any>('/search/applications', {
       params: { keyword }
     });
     return response.data.data;
@@ -133,7 +133,7 @@ export const dataApi = {
    * 获取申请的面试记录
    */
   getInterviewsByApplication: async (applicationId: number): Promise<InterviewRecord[]> => {
-    const response = await apiClient.get<any>(`/applications/${applicationId}/interviews`);
+    const response = await apiClient.get<any>(`/interviews/application/${applicationId}`);
     return response.data.data;
   },
 
@@ -227,7 +227,7 @@ export const dataApi = {
    * 根据申请ID获取日志（带申请和公司信息）
    */
   getLogsByApplicationId: async (applicationId: number): Promise<ApplicationLogDTO[]> => {
-    const response = await apiClient.get<any>(`/applications/${applicationId}/logs`);
+    const response = await apiClient.get<any>(`/logs/applications/${applicationId}`);
     return response.data.data;
   },
 
@@ -247,7 +247,7 @@ export const dataApi = {
    * 获取申请详情聚合（包含公司、面试、日志、统计）
    */
   getApplicationDetail: async (id: number): Promise<any> => {
-    const response = await apiClient.get<any>(`/applications/${id}/detail`);
+    const response = await apiClient.get<any>(`/export/applications/${id}/detail`);
     return response.data.data;
   },
 

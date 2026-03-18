@@ -20,9 +20,14 @@ export function InterviewReportPage() {
   useEffect(() => {
     if (sessionId) {
       fetchSession(sessionId);
-      fetchReport(sessionId);
     }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionId && session) {
+      fetchReport(sessionId);
+    }
+  }, [sessionId, session]);
 
   const handleDownload = () => {
     if (!report) return;

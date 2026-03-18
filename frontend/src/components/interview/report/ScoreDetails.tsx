@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Award, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronUp, Award, Lightbulb, MessageCircle, User } from 'lucide-react';
 import { Badge, Progress } from '@/components/common';
 import type { MockInterviewEvaluation } from '@/types/interview';
 
@@ -67,6 +67,33 @@ function EvaluationCard({ evaluation, index }: EvaluationCardProps) {
 
       {expanded && (
         <div className="p-4 space-y-4 border-t border-paper-200">
+          {(evaluation.questionText || evaluation.userAnswer) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-paper-200">
+              <div className="bg-gradient-to-br from-accent-red/5 to-accent-red/10 rounded-lg p-4 border border-accent-red/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-full bg-accent-red flex items-center justify-center">
+                    <MessageCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-paper-700 font-medium text-sm">面试官问题</span>
+                </div>
+                <p className="text-paper-700 text-sm leading-relaxed whitespace-pre-wrap">
+                  {evaluation.questionText || '暂无问题记录'}
+                </p>
+              </div>
+              <div className="bg-gradient-to-br from-accent-amber/5 to-accent-amber/10 rounded-lg p-4 border border-accent-amber/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-full bg-accent-amber flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-paper-700 font-medium text-sm">你的回答</span>
+                </div>
+                <p className="text-paper-700 text-sm leading-relaxed whitespace-pre-wrap">
+                  {evaluation.userAnswer || '暂无回答记录'}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-4">
             <ScoreItem label="技术能力" score={evaluation.technicalScore} max={4} />
             <ScoreItem label="逻辑思维" score={evaluation.logicScore} max={3} />
@@ -103,7 +130,7 @@ function ScoreItem({ label, score, max }: ScoreItemProps) {
       <p className="text-paper-700 font-medium">{score.toFixed(1)} / {max}</p>
       <Progress
         value={percentage}
-        size="sm"
+        size="md"
         variant={percentage >= 70 ? 'success' : percentage >= 50 ? 'warning' : 'error'}
         className="mt-2"
       />

@@ -1,4 +1,4 @@
-import { Plus, Trash2, Star, AlertCircle, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, Star, AlertCircle, MessageSquare, Target, Award, Briefcase, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { JobApplication, InterviewRecord } from '@/types';
@@ -14,6 +14,13 @@ interface ApplicationDetailModalProps {
   onClose: () => void;
   onUpdate?: () => void;
 }
+
+const SENIORITY_LABELS: Record<string, string> = {
+  JUNIOR: '初级',
+  MIDDLE: '中级',
+  SENIOR: '高级',
+  LEAD: '技术负责人',
+};
 
 export function ApplicationDetailModal({
   application,
@@ -66,6 +73,18 @@ export function ApplicationDetailModal({
     });
   };
 
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return 'text-green-600';
+    if (score >= 6) return 'text-amber-500';
+    return 'text-red-500';
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 8) return 'bg-green-50 border-green-200';
+    if (score >= 6) return 'bg-amber-50 border-amber-200';
+    return 'bg-red-50 border-red-200';
+  };
+
   return (
     <>
       <Modal isOpen={!!application} onClose={onClose} title="申请详情">
@@ -111,6 +130,17 @@ export function ApplicationDetailModal({
                   {application.jobTitle}
                 </span>
               </div>
+              {application.seniorityLevel && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-paper-600 flex items-center gap-1">
+                    <Briefcase className="w-3 h-3" />
+                    岗位级别
+                  </span>
+                  <span className="text-sm font-medium text-paper-800">
+                    {SENIORITY_LABELS[application.seniorityLevel] || application.seniorityLevel}
+                  </span>
+                </div>
+              )}
               {application.jobType && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-paper-600">工作类型</span>
@@ -190,6 +220,27 @@ export function ApplicationDetailModal({
             </div>
           </div>
 
+          {application.skillsRequired && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold text-paper-700 border-b-2 border-paper-300 pb-2 flex items-center gap-1">
+                <Zap className="w-4 h-4 text-amber-500" />
+                技能要求
+              </h4>
+              <div className="p-4 bg-white rounded-lg border-2 border-paper-300">
+                <div className="flex flex-wrap gap-2">
+                  {application.skillsRequired.split(',').map((skill, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-md border border-amber-200"
+                    >
+                      {skill.trim()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {application.jobDescription && (
             <div className="space-y-3">
               <h4 className="text-sm font-bold text-paper-700 border-b-2 border-paper-300 pb-2">
@@ -215,6 +266,50 @@ export function ApplicationDetailModal({
               </div>
             </div>
           )}
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-paper-700 border-b-2 border-paper-300 pb-2 flex items-center gap-1">
+              <Target className="w-4 h-4 text-accent-amber" />
+              模拟面试
+            </h4>
+            <div className="p-4 bg-white rounded-lg border-2 border-paper-300 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-paper-600">准备状态</span>
+                <span className={`text-sm font-medium ${application.interviewPrepared ? 'text-green-600' : 'text-paper-500'}`}>
+                  {application.interviewPrepared ? '已准备' : '未准备'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-paper-600">面试次数</span>
+                <span className="text-sm font-medium text-paper-800">
+                  {application.mockInterviewCount || 0} 次
+                </span>
+              </div>
+              {application.bestMockScore !== undefined && application.bestMockScore !== null && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-paper-600 flex items-center gap-1">
+                    <Award className="w-3 h-3" />
+                    最佳成绩
+                  </span>
+                  <span className={`text-sm font-bold ${getScoreColor(application.bestMockScore)}`}>
+                    {application.bestMockScore.toFixed(1)} / 10
+                  </span>
+                </div>
+              )}
+              {application.bestMockScore !== undefined && application.bestMockScore !== null && (
+                <div className={`mt-2 p-2 rounded-lg border ${getScoreBg(application.bestMockScore)}`}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-paper-600">得分评价</span>
+                    <span className={`font-medium ${getScoreColor(application.bestMockScore)}`}>
+                      {application.bestMockScore >= 8 ? '优秀' : 
+                       application.bestMockScore >= 6 ? '良好' : 
+                       application.bestMockScore >= 4 ? '需改进' : '较差'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-paper-700 border-b-2 border-paper-300 pb-2">

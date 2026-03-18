@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jobtracker.mapper.ResumeProjectMapper">
+
+    <!-- 批量插入项目经历 -->
+    <insert id="insertBatch">
+        INSERT INTO resume_projects
+        (resume_id, project_name, role, start_date, end_date, is_ongoing, description,
+         responsibilities, achievements, tech_stack, project_scale, performance_metrics,
+         display_order, created_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.resumeId}, #{item.projectName}, #{item.role}, #{item.startDate}, #{item.endDate},
+             #{item.isOngoing}, #{item.description}, #{item.responsibilities}, #{item.achievements},
+             #{item.techStack}, #{item.projectScale}, #{item.performanceMetrics},
+             #{item.displayOrder}, NOW())
+        </foreach>
+    </insert>
+
+</mapper>

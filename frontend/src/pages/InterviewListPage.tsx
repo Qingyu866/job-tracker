@@ -19,7 +19,7 @@ export function InterviewListPage() {
 
   useEffect(() => {
     if (userInfo?.id) {
-      fetchSessionList(userInfo.id);
+      fetchSessionList();
     }
   }, [userInfo?.id]);
 
@@ -76,7 +76,7 @@ export function InterviewListPage() {
       }
       setSelectedSessions(new Set());
       if (userInfo?.id) {
-        fetchSessionList(userInfo.id);
+        fetchSessionList();
       }
     } catch (error) {
       console.error('删除失败:', error);

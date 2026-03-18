@@ -176,6 +176,6 @@ export const VIEW_CONFIG = {
 } as const;
 
 export const API_CONFIG = {
-  baseURL: 'http://localhost:8080/api/data',
+  baseURL: 'http://localhost:8080/api',
   wsURL: 'ws://localhost:8080/api/ws/chat',
 };

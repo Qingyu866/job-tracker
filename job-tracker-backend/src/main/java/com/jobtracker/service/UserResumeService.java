@@ -1,6 +1,7 @@
 package com.jobtracker.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.jobtracker.dto.*;
 import com.jobtracker.entity.ResumeProject;
 import com.jobtracker.entity.ResumeSkill;
 import com.jobtracker.entity.ResumeWorkExperience;
@@ -43,6 +44,133 @@ public class UserResumeService {
         resumeMapper.insert(resume);
         log.info("创建简历成功，ID: {}, 用户: {}", resume.getResumeId(), resume.getUserId());
         return resume;
+    }
+
+    /**
+     * 创建完整简历（包含关联数据）
+     *
+     * @param userId 当前用户ID
+     * @param request 创建请求
+     * @return 创建的完整简历
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public UserResume createCompleteResume(Long userId, CreateResumeRequest request) {
+        // 1. 创建主表记录
+        UserResume resume = buildMainResume(userId, request);
+        resumeMapper.insert(resume);
+
+        Long resumeId = resume.getResumeId();
+
+        // 2. 批量创建工作经历
+        if (request.getWorkExperiences() != null && !request.getWorkExperiences().isEmpty()) {
+            List<ResumeWorkExperience> experiences = request.getWorkExperiences().stream()
+                    .map(req -> buildWorkExperience(resumeId, req))
+                    .toList();
+
+            // 使用批量插入，避免for循环
+            workExperienceMapper.insertBatch(experiences);
+            log.info("批量创建 {} 条工作经历", experiences.size());
+        }
+
+        // 3. 批量创建项目经历
+        if (request.getProjects() != null && !request.getProjects().isEmpty()) {
+            List<ResumeProject> projects = request.getProjects().stream()
+                    .map(req -> buildProject(resumeId, req))
+                    .toList();
+
+            // 使用批量插入
+            projectMapper.insertBatch(projects);
+            log.info("批量创建 {} 个项目", projects.size());
+        }
+
+        // 4. 批量创建技能（直接使用前端传入的skillId）
+        if (request.getSkills() != null && !request.getSkills().isEmpty()) {
+            List<ResumeSkill> skills = request.getSkills().stream()
+                    .map(req -> buildSkill(resumeId, req))
+                    .toList();
+
+            // 使用批量插入
+            skillMapper.insertBatch(skills);
+            log.info("批量创建 {} 项技能", skills.size());
+        }
+
+        // 5. 处理默认简历逻辑
+        if (Boolean.TRUE.equals(request.getIsDefault())) {
+            setDefaultResume(userId, resumeId);
+        }
+
+        log.info("完整简历创建成功：resumeId={}, userId={}", resumeId, userId);
+
+        return resume;
+    }
+
+    /**
+     * 构建主表记录
+     */
+    private UserResume buildMainResume(Long userId, CreateResumeRequest request) {
+        return UserResume.builder()
+                .userId(userId)
+                .resumeName(request.getResumeName())
+                .isDefault(request.getIsDefault())
+                .workYears(request.getWorkYears())
+                .currentPosition(request.getCurrentPosition())
+                .targetLevel(request.getTargetLevel())
+                .summary(request.getSummary())
+                .build();
+    }
+
+    /**
+     * 构建工作经历记录
+     */
+    private ResumeWorkExperience buildWorkExperience(Long resumeId, WorkExperienceRequest request) {
+        return ResumeWorkExperience.builder()
+                .resumeId(resumeId)
+                .companyName(request.getCompanyName())
+                .position(request.getPosition())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .isCurrent(request.getIsCurrent())
+                .description(request.getDescription())
+                .achievements(request.getAchievements())
+                .build();
+    }
+
+    /**
+     * 构建项目经历记录
+     */
+    private ResumeProject buildProject(Long resumeId, ProjectRequest request) {
+        return ResumeProject.builder()
+                .resumeId(resumeId)
+                .projectName(request.getProjectName())
+                .role(request.getRole())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .isOngoing(request.getIsOngoing())
+                .description(request.getDescription())
+                .responsibilities(request.getResponsibilities())
+                .achievements(request.getAchievements())
+                .techStack(request.getTechStack())
+                .projectScale(request.getProjectScale())
+                .performanceMetrics(request.getPerformanceMetrics())
+                .displayOrder(request.getDisplayOrder())
+                .build();
+    }
+
+    /**
+     * 构建技能记录
+     * <p>
+     * 直接使用前端传入的skillId，无需查询skill_tags表
+     * </p>
+     */
+    private ResumeSkill buildSkill(Long resumeId, SkillRequest request) {
+        return ResumeSkill.builder()
+                .resumeId(resumeId)
+                .skillId(request.getSkillId())  // 直接使用，无需查询
+                .proficiencyLevel(request.getProficiencyLevel())
+                .experienceYears(request.getExperienceYears())
+                .lastUsedDate(request.getLastUsedDate())
+                .isCoreSkill(request.getIsCoreSkill())
+                .build();
     }
 
     /**

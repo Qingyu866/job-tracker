@@ -3,6 +3,9 @@ package com.jobtracker.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.jobtracker.entity.ResumeSkill;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 简历技能 Mapper
@@ -13,4 +16,11 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface ResumeSkillMapper extends BaseMapper<ResumeSkill> {
+
+    /**
+     * 批量插入技能
+     *
+     * @param skills 技能列表
+     */
+    void insertBatch(@Param("list") List<ResumeSkill> skills);
 }

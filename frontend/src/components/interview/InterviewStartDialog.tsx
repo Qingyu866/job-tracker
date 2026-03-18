@@ -106,9 +106,9 @@ export function InterviewStartDialog({
                 <div className="space-y-3">
                   {resumes.map((resume) => (
                     <ResumeCard
-                      key={resume.id}
+                      key={resume.resumeId}
                       resume={resume}
-                      selected={selectedResume?.id === resume.id}
+                      selected={selectedResume?.resumeId === resume.resumeId}
                       onSelect={() => setSelectedResume(resume)}
                     />
                   ))}

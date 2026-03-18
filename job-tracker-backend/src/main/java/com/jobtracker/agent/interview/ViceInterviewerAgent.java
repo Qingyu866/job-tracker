@@ -1,5 +1,10 @@
 package com.jobtracker.agent.interview;
 
+import com.jobtracker.agent.interview.dto.NextStepDecision;
+import com.jobtracker.agent.interview.dto.ImprovementSuggestion;
+
+import java.util.List;
+
 /**
  * 副面试官 Agent
  * <p>
@@ -17,7 +22,19 @@ public interface ViceInterviewerAgent {
      * 决定下一个步骤
      *
      * @param context 上下文信息（包含 JD、简历、已考察知识点、用户最新回答等）
-     * @return 下一步决策（JSON 格式）
+     * @return 下一步决策对象（LangChain4j 会自动处理序列化）
      */
-    String decideNextStep(String context);
+    NextStepDecision decideNextStep(String context);
+
+    /**
+     * 生成改进建议
+     * <p>
+     * 在面试结束时调用，基于整个面试过程的表现
+     * 生成针对性的改进建议和学习资源推荐
+     * </p>
+     *
+     * @param context 完整的面试上下文（包含所有对话记录、评分结果等）
+     * @return 改进建议列表（LangChain4j 会自动处理序列化）
+     */
+    List<ImprovementSuggestion> generateSuggestions(String context);
 }

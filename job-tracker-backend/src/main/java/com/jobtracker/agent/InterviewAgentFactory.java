@@ -148,17 +148,18 @@ public class InterviewAgentFactory {
         StringBuilder context = new StringBuilder();
 
         // 基本信息
-        context.append(String.format("公司: %s\n", session.getJobTitle()));
-        context.append(String.format("岗位: %s\n", session.getJobTitle()));
-        context.append(String.format("级别: %s\n", session.getSeniorityLevel()));
+        context.append(String.format("面试公司: %s\n", session.getJobTitle()));
+        context.append(String.format("应聘岗位: %s\n", session.getJobTitle()));
+        context.append(String.format("岗位级别: %s\n", session.getSeniorityLevel()));
 
         // 简历信息
         if (session.getResumeId() != null) {
             UserResume resume = resumeService.getById(session.getResumeId());
             if (resume != null) {
-                context.append(String.format("工作年限: %d 年\n",
+                context.append(String.format("候选人工作年限: %d 年\n",
                         resume.getWorkYears() != null ? resume.getWorkYears() : 0));
-                context.append(String.format("当前职位: %s\n", resume.getCurrentPosition()));
+                context.append(String.format("候选人当前职位: %s\n",
+                        resume.getCurrentPosition() != null ? resume.getCurrentPosition() : "无"));
             }
         }
 
@@ -172,6 +173,11 @@ public class InterviewAgentFactory {
         return String.format("""
                 # 角色设定
                 你是 JobTracker 模拟面试系统的主面试官，正在对候选人进行专业面试。
+
+                # ⚠️ 重要：明确区分
+                - **面试公司**：这是候选人要应聘的公司，不是候选人工作过的公司
+                - **候选人工作经历**：这是候选人之前在别的公司的工作经历
+                - **千万不要混淆**：不要把面试公司当成候选人的工作经历！
 
                 # ⏰ 当前时间
                 - 当前日期：%s
@@ -203,6 +209,12 @@ public class InterviewAgentFactory {
                 ## 2. 提问示例
                 ❌ 错误： "请讲讲 HashMap 的原理。" （太泛泛，没有结合简历）
                 ✅ 正确： "看到你简历上写了电商秒杀项目，能详细讲讲在高并发场景下，Redis 和 Kafka 是如何配合使用的吗？"
+
+                ## 3. 特殊情况处理
+                - 如果候选人**没有工作经历**（work_years: 0, work_experiences: []）：
+                    - 不要问"你在某某公司的工作经历"
+                    - 应该问"你为什么要应聘这个岗位"
+                    - 或者从基础知识开始问起
 
                 # 严格约束
                 1. **严禁评分**：不要提及分数、等级
@@ -248,25 +260,45 @@ public class InterviewAgentFactory {
                 - 通过深入问题判断技能真实性
                 - 记录"存疑"的技能（后续在报告中标注）
 
+                ### ⚠️ 技能验证停止条件（重要！）
+                如果出现以下情况，**必须放弃当前技能，切换到其他话题**：
+                1. 用户明确表示"不知道"、"不熟悉"、"没用过"（连续 2 次）
+                2. 用户明确要求"换题"、"换个话题"
+                3. 同一技能已经验证超过 3 轮
+                4. 用户回答内容明显与该技能无关
+
+                验证失败后，应该：
+                - 切换到 JD 要求的其他技能
+                - 或者切换到项目深挖
+                - 或者切换到通用问题
+                - **不要再问同一个技能！**
+
                 ## 3. JD 要求覆盖
                 - 确保 JD 中的核心技能都被覆盖
                 - 补充简历未提及但 JD 要求的技能
 
-                # 输出格式（严格 JSON）
-                {
-                  "action": "NEXT_QUESTION",
-                  "next_topic": "Redis 集群 Slot 迁移",
-                  "topic_source": "RESUME_SKILL",
-                  "reason": "简历上写着精通 Redis，需要验证深度",
-                  "question_type": "SKILL_VERIFICATION",
-                  "difficulty": 4
-                }
+                # 返回值说明
+                你需要返回一个 NextStepDecision 对象，包含以下字段：
+                - action: 动作类型（NEXT_QUESTION, FINISH_INTERVIEW, SWITCH_TO_HR）
+                - nextTopic: 下一个选题（如 "Redis 集群 Slot 迁移"）
+                - topicSource: 选题来源（PROJECT_DEEP_DIVE, SKILL_VERIFICATION, JD_REQUIREMENT, GENERAL）
+                - reason: 选择该选题的原因
+                - questionType: 问题类型（同上）
+                - difficulty: 难度等级（1-5）
 
                 # topic_source 说明
-                - "PROJECT_DEEP_DIVE": 项目深挖
-                - "SKILL_VERIFICATION": 技能验证
-                - "JD_REQUIREMENT": JD 要求覆盖
-                - "GENERAL": 通用问题
+                - PROJECT_DEEP_DIVE: 项目深挖
+                - SKILL_VERIFICATION: 技能验证
+                - JD_REQUIREMENT: JD 要求覆盖
+                - GENERAL: 通用问题
+
+                # ⚠️️ 输出格式要求（必须遵守）
+                **严禁使用 Markdown 代码块！**
+                - ❌ 错误示例：```json {...}```
+                - ✅ 正确示例：{"action": "NEXT_QUESTION", ...}
+                - 直接输出纯 JSON，不要有任何标记
+                - 不要包含 ```json 或 ``` 标记
+                - 开头直接是 `{`，结尾直接是 `}`
                 """,
                 context
         );
@@ -303,27 +335,33 @@ public class InterviewAgentFactory {
                 # 简历真实性分析
 
                 ## 匹配度评估
-                - **完全匹配**：回答与简历声称一致
-                - **部分夸大**：回答有一定基础，但未达到简历声称的水平
-                - **严重夸大**：回答明显低于简历声称的水平
-                - **超出预期**：回答超出简历声称的水平
+                - **PERFECT_MATCH**：回答与简历声称一致，甚至超出预期
+                - **MOSTLY_MATCH**：回答与简历声称基本一致，可能有些许夸大
+                - **PARTIALLY_EXAGGERATED**：回答有一定基础，但未达到简历声称的水平
+                - **SEVERELY_EXAGGERATED**：回答明显低于简历声称的水平
+                - **EXCEEDS_EXPECTATIONS**：回答超出简历声称的水平
 
-                ## 输出格式（严格 JSON）
-                {
-                  "scores": {
-                    "technical": 2.5,
-                    "logic": 2.0,
-                    "depth": 1.5
-                  },
-                  "total_score": 6.0,
-                  "credibility_assessment": {
-                    "match_level": "部分夸大",
-                    "gap_description": "简历声称精通 Redis，但对集群模式的回答很基础",
-                    "exaggeration_score": 0.6
-                  },
-                  "feedback": "用户知道 Redis 的基本概念，但对集群模式的 Slot 迁移机制不熟悉...",
-                  "suggestion": "建议深入学习 Redis Cluster 的原理..."
-                }
+                # 返回值说明
+                你需要返回一个 EvaluationResult 对象，包含以下字段：
+                - scores: ScoreDetail 对象
+                  * technical: 技术准确性（0-4）
+                  * logic: 逻辑清晰度（0-3）
+                  * depth: 深度与广度（0-3）
+                - totalScore: 总分（0-10）
+                - credibilityAssessment: CredibilityAssessment 对象
+                  * matchLevel: 匹配度等级（枚举值如上）
+                  * gapDescription: 差距描述
+                  * exaggerationScore: 夸大程度评分（0-1）
+                - feedback: 反馈意见
+                - suggestion: 改进建议
+
+                # ⚠️️ 输出格式要求（必须遵守）
+                **严禁使用 Markdown 代码块！**
+                - ❌ 错误示例：```json {...}```
+                - ✅ 正确示例：{"scores": {...}, "totalScore": 8.5, ...}
+                - 直接输出纯 JSON，不要有任何标记
+                - 不要包含 ```json 或 ``` 标记
+                - 开头直接是 `{`，结尾直接是 `}`
                 """,
                 context
         );

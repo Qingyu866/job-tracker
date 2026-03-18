@@ -24,6 +24,13 @@ export interface JobApplication {
   createdAt: string;
   updatedAt?: string;
   company?: Company;
+  resumeId?: number;
+  seniorityLevel?: 'JUNIOR' | 'MIDDLE' | 'SENIOR' | 'LEAD';
+  resumeSnapshot?: string;
+  skillsRequired?: string;
+  interviewPrepared?: boolean;
+  mockInterviewCount?: number;
+  bestMockScore?: number;
 }
 
 // 公司类型

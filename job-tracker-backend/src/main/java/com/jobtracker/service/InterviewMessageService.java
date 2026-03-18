@@ -1,5 +1,6 @@
 package com.jobtracker.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jobtracker.entity.InterviewMessage;
 import com.jobtracker.mapper.InterviewMessageMapper;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +68,7 @@ public class InterviewMessageService {
      */
     public List<InterviewMessage> getSessionMessages(String sessionId) {
         return messageMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<InterviewMessage>()
+                new LambdaQueryWrapper<InterviewMessage>()
                         .eq(InterviewMessage::getSessionId, sessionId)
                         .orderByAsc(InterviewMessage::getRoundNumber)
                         .orderByAsc(InterviewMessage::getSequenceInRound)
@@ -75,11 +76,26 @@ public class InterviewMessageService {
     }
 
     /**
+     * 获取最后一条问题消息（面试官的问题）
+     */
+    public InterviewMessage getLastQuestion(String sessionId) {
+        List<InterviewMessage> messages = messageMapper.selectList(
+                new LambdaQueryWrapper<InterviewMessage>()
+                        .eq(InterviewMessage::getSessionId, sessionId)
+                        .eq(InterviewMessage::getRole, InterviewMessage.MessageRole.ASSISTANT.name())
+                        .orderByDesc(InterviewMessage::getCreatedAt)
+                        .last("LIMIT 1")
+        );
+
+        return messages.isEmpty() ? null : messages.get(0);
+    }
+
+    /**
      * 获取下一序号
      */
     private Integer getNextSequence(String sessionId, Integer roundNumber) {
         List<InterviewMessage> messages = messageMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<InterviewMessage>()
+                new LambdaQueryWrapper<InterviewMessage>()
                         .eq(InterviewMessage::getSessionId, sessionId)
                         .eq(InterviewMessage::getRoundNumber, roundNumber)
                         .orderByDesc(InterviewMessage::getSequenceInRound)

@@ -25,9 +25,9 @@ interface InterviewState {
 }
 
 interface InterviewStore extends InterviewState {
-  fetchSessionList: (userId: number) => Promise<void>;
+  fetchSessionList: () => Promise<void>;
   fetchSession: (sessionId: string) => Promise<void>;
-  startInterview: (applicationId: number, userId?: number) => Promise<string>;
+  startInterview: (applicationId: number) => Promise<string>;
   sendMessage: (content: string) => Promise<void>;
   finishInterview: () => Promise<void>;
   fetchReport: (sessionId: string) => Promise<void>;
@@ -72,10 +72,10 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
   isListLoading: false,
   searchKeyword: '',
 
-  fetchSessionList: async (userId: number) => {
+  fetchSessionList: async () => {
     set({ isListLoading: true });
     try {
-      const sessions = await interviewApi.getUserSessions(userId);
+      const sessions = await interviewApi.getUserSessions();
       set({ sessionList: sessions, isListLoading: false });
     } catch (error) {
       console.error('获取面试会话列表失败:', error);
@@ -265,10 +265,16 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
 
   fetchReport: async (sessionId: string) => {
     try {
-      const [report, evaluations] = await Promise.all([
-        interviewApi.getReport(sessionId),
-        interviewApi.getEvaluations(sessionId),
-      ]);
+      const sessionState = get().sessions[sessionId];
+      const session = sessionState?.session;
+      
+      if (!session) {
+        console.error('fetchReport: session not loaded');
+        return;
+      }
+
+      const evaluations = await interviewApi.getEvaluations(sessionId);
+      const report = await interviewApi.getReport(sessionId, session, evaluations);
 
       set({
         sessions: {

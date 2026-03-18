@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { UserResume, CreateResumeRequest, UpdateResumeRequest } from '@/types/resume';
 
-const TOKEN_KEY = 'satoken';
+const TOKEN_KEY = 'authorization';
 
 interface ApiResponse<T> {
   code: number;

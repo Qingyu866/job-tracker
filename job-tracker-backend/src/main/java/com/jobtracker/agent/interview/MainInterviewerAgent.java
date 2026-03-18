@@ -19,4 +19,16 @@ public interface MainInterviewerAgent {
      * @return 生成的问题
      */
     String askQuestion(String context);
+
+    /**
+     * 生成面试总结
+     * <p>
+     * 在面试结束时调用，对整个面试过程进行总结
+     * 包括：整体表现、优势亮点、待改进方面、推荐方向等
+     * </p>
+     *
+     * @param context 完整的面试上下文（包含所有对话记录、评分结果、简历信息等）
+     * @return 面试总结文本（纯文本，200-500 字）
+     */
+    String generateSummary(String context);
 }

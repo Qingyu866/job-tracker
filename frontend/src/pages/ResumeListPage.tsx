@@ -202,13 +202,13 @@ export function ResumeListPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredResumes.map((resume) => (
                 <ResumeCard
-                  key={resume.id}
+                  key={resume.resumeId}
                   resume={resume}
-                  selected={selectedResumes.has(resume.id)}
-                  onSelect={() => handleSelectResume(resume.id)}
-                  onEdit={() => handleEditResume(resume.id)}
-                  onDelete={() => handleDeleteResume(resume.id)}
-                  onSetDefault={() => handleSetDefault(resume.id)}
+                  selected={selectedResumes.has(resume.resumeId)}
+                  onSelect={() => handleSelectResume(resume.resumeId)}
+                  onEdit={() => handleEditResume(resume.resumeId)}
+                  onDelete={() => handleDeleteResume(resume.resumeId)}
+                  onSetDefault={() => handleSetDefault(resume.resumeId)}
                 />
               ))}
             </div>

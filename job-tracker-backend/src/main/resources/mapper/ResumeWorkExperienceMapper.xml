@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jobtracker.mapper.ResumeWorkExperienceMapper">
+
+    <!-- 批量插入工作经历 -->
+    <insert id="insertBatch">
+        INSERT INTO resume_work_experiences
+        (resume_id, company_name, position, start_date, end_date, is_current, description, achievements, created_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.resumeId}, #{item.companyName}, #{item.position}, #{item.startDate},
+             #{item.endDate}, #{item.isCurrent}, #{item.description}, #{item.achievements}, NOW())
+        </foreach>
+    </insert>
+
+</mapper>

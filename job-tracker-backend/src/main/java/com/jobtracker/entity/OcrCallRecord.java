@@ -28,7 +28,7 @@ public class OcrCallRecord {
     /**
      * 记录 ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long recordId;
 
     /**

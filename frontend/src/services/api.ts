@@ -1,9 +1,9 @@
 import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 
-const TOKEN_KEY = 'satoken';
+const TOKEN_KEY = 'authorization';
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api/data',
+  baseURL: 'http://localhost:8080/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

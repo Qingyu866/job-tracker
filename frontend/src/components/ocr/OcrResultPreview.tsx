@@ -22,7 +22,7 @@ export function OcrResultPreview({
     return (
       <div className={clsx(
         'flex flex-col items-center justify-center gap-4 p-8',
-        'bg-paper-50 rounded-xl border border-paper-200',
+        'bg-paper-50 rounded-xl border-2 border-paper-400',
         className
       )}>
         <Spinner size="xl" />
@@ -58,10 +58,10 @@ export function OcrResultPreview({
 
   return (
     <div className={clsx(
-      'bg-white rounded-xl border border-paper-200 shadow-paper',
+      'bg-[#f5f0e6] rounded-xl border-2 border-paper-400 shadow-paper',
       className
     )}>
-      <div className="flex items-center gap-3 p-4 border-b border-paper-200">
+      <div className="flex items-center gap-3 p-4 border-b-2 border-paper-300">
         <div className="w-8 h-8 rounded-full bg-accent-green/10 flex items-center justify-center">
           <CheckCircle className="w-5 h-5 text-accent-green" />
         </div>
@@ -88,7 +88,7 @@ export function OcrResultPreview({
       </div>
 
       {onConfirm && (
-        <div className="flex justify-end gap-3 p-4 border-t border-paper-200 bg-paper-50 rounded-b-xl">
+        <div className="flex justify-end gap-3 p-4 border-t-2 border-paper-300 bg-paper-50 rounded-b-xl">
           <Button variant="outline" onClick={onRetry}>
             重新上传
           </Button>
