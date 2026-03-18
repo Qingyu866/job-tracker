@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button, Badge, Spinner } from '@/components/common';
-import { resumeApi } from '@/services/interviewApi';
+import { resumeApi } from '@/services/resumeApi';
 import { useUserStore } from '@/store/userStore';
-import type { UserResume } from '@/types/interview';
+import type { UserResume } from '@/types/resume';
 
 export interface InterviewStartDialogProps {
   applicationId: number;
@@ -30,18 +30,36 @@ export function InterviewStartDialog({
   const [selectedResume, setSelectedResume] = useState<UserResume | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('InterviewStartDialog render:', { 
+    userInfo, 
+    userId: userInfo?.id,
+    resumesCount: resumes.length 
+  });
+
   useEffect(() => {
-    loadResumes();
+    console.log('InterviewStartDialog useEffect triggered, userInfo:', userInfo);
+    if (userInfo?.id) {
+      loadResumes();
+    } else {
+      console.warn('InterviewStartDialog: userInfo.id is not available, userInfo:', userInfo);
+      setLoading(false);
+    }
   }, [userInfo?.id]);
 
   const loadResumes = async () => {
-    if (!userInfo?.id) return;
+    if (!userInfo?.id) {
+      console.warn('loadResumes: No user ID available');
+      return;
+    }
+    
+    console.log('Loading resumes for user:', userInfo.id);
     
     try {
       setLoading(true);
-      const data = await resumeApi.getUserResumes(userInfo.id);
+      const data = await resumeApi.getList(userInfo.id);
+      console.log('Loaded resumes:', data);
       setResumes(data);
-      const defaultResume = data.find(r => r.isDefault);
+      const defaultResume = data.find((r: UserResume) => r.isDefault);
       if (defaultResume) {
         setSelectedResume(defaultResume);
       }
@@ -80,7 +98,7 @@ export function InterviewStartDialog({
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 text-paper-300 mx-auto mb-3" />
                   <p className="text-paper-500 mb-4">暂无简历，请先创建简历</p>
-                  <Button variant="outline" onClick={() => navigate('/resumes/new')}>
+                  <Button variant="outline" onClick={() => navigate('/resumes/new', { state: { returnUrl: window.location.pathname } })}>
                     创建简历
                   </Button>
                 </div>
@@ -203,7 +221,7 @@ function ResumeCard({ resume, selected, onSelect }: ResumeCardProps) {
             <div className="mt-2 flex flex-wrap gap-1">
               {resume.skills.slice(0, 5).map((skill, index) => (
                 <Badge key={index} variant="outline" size="sm">
-                  {skill}
+                  {skill.name}
                 </Badge>
               ))}
               {resume.skills.length > 5 && (

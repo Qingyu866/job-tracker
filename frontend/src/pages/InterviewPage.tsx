@@ -5,6 +5,7 @@ import { InterviewHeader, InterviewChat, InterviewSidebar, InterviewStartDialog 
 import { Spinner, Button } from '@/components/common';
 import { Header } from '@/components/layout/Header';
 import { FileText, AlertCircle } from 'lucide-react';
+
 import { normalizeState } from '@/types/interview';
 
 interface InterviewPageState {
@@ -43,7 +44,20 @@ export function InterviewPage() {
   const companyName = locationState?.companyName;
   const jobTitle = locationState?.jobTitle;
 
+  console.log('InterviewPage render:', { 
+    sessionId, 
+    applicationId, 
+    companyName, 
+    jobTitle,
+    showStartDialog,
+    activeSessionId,
+    sessions,
+    loading,
+    session
+  });
+
   if (!applicationId) {
+    console.warn('InterviewPage: No applicationId, location.state:', location.state);
     return (
       <div className="h-screen flex flex-col">
         <Header />
@@ -153,7 +167,7 @@ export function InterviewPage() {
     );
   }
 
-  if (showStartDialog) {
+  if (sessionId === 'new' || sessionId === undefined || showStartDialog) {
     return (
       <div className="h-screen flex flex-col">
         <Header />
@@ -190,12 +204,12 @@ export function InterviewPage() {
   return (
     <div className="h-screen flex flex-col">
       <Header />
-      <InterviewHeader session={session} onExit={handleExit} />
+      <InterviewHeader session={session!} onExit={handleExit} />
 
       <div className="flex-1 p-4 lg:p-6">
         <div className="h-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 lg:gap-6">
           <InterviewChat
-            session={session}
+            session={session || null}
             messages={messages}
             onSendMessage={sendMessage}
             loading={loading}
@@ -203,7 +217,7 @@ export function InterviewPage() {
 
           <div className="hidden lg:block">
             <InterviewSidebar
-              session={session}
+              session={session!}
               onFinish={handleFinishInterview}
               finishing={finishing}
             />

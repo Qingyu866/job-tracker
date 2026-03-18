@@ -12,6 +12,9 @@ import { ProtectedRoute, PublicRoute, AuthLoadingWrapper } from './components/au
 const InterviewPage = lazy(() => import('./pages/InterviewPage').then(m => ({ default: m.InterviewPage })));
 const InterviewReportPage = lazy(() => import('./pages/InterviewReportPage').then(m => ({ default: m.InterviewReportPage })));
 const InterviewListPage = lazy(() => import('./pages/InterviewListPage').then(m => ({ default: m.InterviewListPage })));
+const ResumeListPage = lazy(() => import('./pages/ResumeListPage').then(m => ({ default: m.ResumeListPage })));
+const ResumeCreatePage = lazy(() => import('./pages/ResumeCreatePage').then(m => ({ default: m.ResumeCreatePage })));
+const ResumeEditPage = lazy(() => import('./pages/ResumeEditPage').then(m => ({ default: m.ResumeEditPage })));
 
 function App() {
   const { toasts, removeToast } = useToastStore();
@@ -65,16 +68,6 @@ function App() {
             }
           />
           <Route
-            path="/interview/new"
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingScreen />}>
-                  <InterviewPage />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/interview/:sessionId"
             element={
               <ProtectedRoute>
@@ -90,6 +83,37 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<LoadingScreen />}>
                   <InterviewReportPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/resumes"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingScreen />}>
+                  <ResumeListPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resumes/new"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingScreen />}>
+                  <ResumeCreatePage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resumes/:resumeId/edit"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingScreen />}>
+                  <ResumeEditPage />
                 </Suspense>
               </ProtectedRoute>
             }

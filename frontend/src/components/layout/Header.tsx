@@ -1,4 +1,4 @@
-import { Bell, Menu, Search, Settings, X, BookOpen, Download, FileSpreadsheet, FileJson, XCircle, Loader2, Building2, MessageSquare, LogOut, User, ChevronDown } from 'lucide-react';
+import { Bell, Menu, Search, Settings, X, BookOpen, Download, FileSpreadsheet, FileJson, XCircle, Loader2, Building2, MessageSquare, LogOut, User, ChevronDown, FileText } from 'lucide-react';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { dataApi } from '@/services/dataApi';
 import { toast } from '@/store/toastStore';
@@ -179,6 +179,16 @@ export function Header() {
           title="公司管理"
         >
           <Building2 className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={() => navigate('/resumes')}
+          className={`p-2 rounded-lg transition-colors ${
+            location.pathname.startsWith('/resumes') ? 'bg-accent-amber text-paper-800' : 'text-paper-600 hover:bg-paper-100'
+          }`}
+          title="简历管理"
+        >
+          <FileText className="w-5 h-5" />
         </button>
 
         <button
