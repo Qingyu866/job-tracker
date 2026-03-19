@@ -2,6 +2,7 @@ package com.jobtracker.agent.interview;
 
 import com.jobtracker.agent.interview.dto.NextStepDecision;
 import com.jobtracker.agent.interview.dto.ImprovementSuggestion;
+import com.jobtracker.dto.QuestionPlanDTO;
 
 import java.util.List;
 
@@ -17,6 +18,18 @@ import java.util.List;
  * @since 2026-03-16
  */
 public interface ViceInterviewerAgent {
+
+    /**
+     * 生成完整的考察计划（25轮）
+     * <p>
+     * 在创建会话时调用，生成所有轮次的考察计划
+     * LangChain4j 会自动将 AI 返回的 JSON 解析为 List&lt;QuestionPlanDTO&gt;
+     * </p>
+     *
+     * @param context 上下文信息（包含 JD 和简历数据）
+     * @return 考察计划列表
+     */
+    List<QuestionPlanDTO> generateQuestionPlan(String context);
 
     /**
      * 决定下一个步骤

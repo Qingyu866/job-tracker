@@ -113,7 +113,34 @@ public class MockInterviewSession {
      */
     private String projectsDiscussed;
 
-    // 评分结果
+    // ==================== 进度追踪相关字段（新增）====================
+
+    /**
+     * 当前执行的计划ID（用于暂停/恢复）
+     */
+    private Long currentPlanId;
+
+    /**
+     * 总考察计划数量
+     */
+    private Integer totalPlans;
+
+    /**
+     * 已完成计划数量
+     */
+    private Integer completedPlans;
+
+    /**
+     * 暂停时间
+     */
+    private LocalDateTime pausedAt;
+
+    /**
+     * 恢复时间
+     */
+    private LocalDateTime resumedAt;
+
+    // ==================== 评分结果 ====================
 
     /**
      * 最终总分

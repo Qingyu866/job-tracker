@@ -1,7 +1,6 @@
 package com.jobtracker.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +26,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ResumeParsingService {
 
-    private final ChatLanguageModel chatModel;
+    private final OpenAiChatModel chatModel;
     private final ObjectMapper objectMapper;
 
     /**
@@ -41,7 +40,7 @@ public class ResumeParsingService {
 
         try {
             // 调用 LLM 解析
-            String aiResponse = chatModel.generate(prompt);
+            String aiResponse = chatModel.chat(prompt);
 
             // 解析 JSON 响应
             ResumeParseResult result = objectMapper.readValue(

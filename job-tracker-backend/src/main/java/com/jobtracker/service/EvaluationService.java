@@ -102,4 +102,27 @@ public class EvaluationService {
         return String.format("共进行 %d 轮面试，平均得分 %.1f 分，其中 %d 轮表现优秀（≥7分）。",
                 evaluations.size(), avgScore, goodCount);
     }
+
+    /**
+     * 更新评估记录的计划状态
+     * <p>
+     * 根据会话ID和轮次更新对应的评估记录的计划状态
+     * </p>
+     *
+     * @param sessionId 会话ID
+     * @param roundNumber 轮次
+     * @param newStatus 新状态
+     */
+    @Transactional
+    public void updateEvaluationPlanStatus(String sessionId, Integer roundNumber, String newStatus) {
+        evaluationMapper.update(null,
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getRoundNumber, roundNumber)
+                        .set(MockInterviewEvaluation::getPlanStatus, newStatus)
+        );
+
+        log.debug("更新评估记录计划状态: sessionId={}, roundNumber={}, newStatus={}",
+                sessionId, roundNumber, newStatus);
+    }
 }

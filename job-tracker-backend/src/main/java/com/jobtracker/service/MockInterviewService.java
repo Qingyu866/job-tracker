@@ -1,14 +1,20 @@
 package com.jobtracker.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.jobtracker.agent.InterviewAgentFactory;
+import com.jobtracker.agent.interview.SkillGeneratorAgent;
+import com.jobtracker.dto.QuestionPlanDTO;
 import com.jobtracker.entity.*;
 import com.jobtracker.mapper.*;
+import com.jobtracker.common.result.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,6 +46,9 @@ public class MockInterviewService {
     // 新增：智能解析服务
     private final ResumeParsingService resumeParsingService;
     private final JDParsingService jdParsingService;
+
+    // Agent 工厂
+    private final InterviewAgentFactory agentFactory;
 
     // ==================== 面试会话操作 ====================
 
@@ -729,13 +738,30 @@ public class MockInterviewService {
 
         // 查询技能
         List<ResumeSkill> skills = resumeSkillMapper.selectList(
-                new LambdaQueryWrapper<ResumeSkill>().eq(ResumeSkill::getResumeId, resume.getId())
+                new LambdaQueryWrapper<ResumeSkill>().eq(ResumeSkill::getResumeId, resume.getResumeId())
         );
 
         if (!skills.isEmpty()) {
+            // 批量查询 skill_tags 获取技能名称
+            List<Long> skillIds = skills.stream()
+                    .map(ResumeSkill::getSkillId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            List<SkillTag> skillTags = skillIds.isEmpty() ? List.of() :
+                    skillTagMapper.selectBatchIds(skillIds);
+
+            // 构建 skillId -> skillName 映射
+            Map<Long, String> skillNameMap = skillTags.stream()
+                    .collect(Collectors.toMap(
+                            SkillTag::getSkillId,
+                            SkillTag::getSkillName,
+                            (existing, replacement) -> existing
+                    ));
+
             text.append("\n技能列表：\n");
             for (ResumeSkill skill : skills) {
-                text.append("- ").append(skill.getSkillName())
+                String skillName = skillNameMap.getOrDefault(skill.getSkillId(), "未知技能");
+                text.append("- ").append(skillName)
                         .append("（").append(skill.getProficiencyLevel()).append("）\n");
             }
         }
@@ -743,7 +769,7 @@ public class MockInterviewService {
         // 查询项目
         List<ResumeProject> projects = resumeProjectMapper.selectList(
                 new LambdaQueryWrapper<ResumeProject>()
-                        .eq(ResumeProject::getResumeId, resume.getId())
+                        .eq(ResumeProject::getResumeId, resume.getResumeId())
                         .orderByAsc(ResumeProject::getDisplayOrder)
         );
 
@@ -765,7 +791,7 @@ public class MockInterviewService {
         // 查询工作经历
         List<ResumeWorkExperience> workExps = resumeWorkExperienceMapper.selectList(
                 new LambdaQueryWrapper<ResumeWorkExperience>()
-                        .eq(ResumeWorkExperience::getResumeId, resume.getId())
+                        .eq(ResumeWorkExperience::getResumeId, resume.getResumeId())
                         .orderByDesc(ResumeWorkExperience::getStartDate)
         );
 
@@ -794,7 +820,7 @@ public class MockInterviewService {
         StringBuilder text = new StringBuilder();
 
         text.append("职位名称：").append(application.getJobTitle()).append("\n");
-        text.append("级别：").append(application.getSenioriorityLevel()).append("\n");
+        text.append("级别：").append(application.getSeniorityLevel()).append("\n");
 
         if (application.getJobDescription() != null && !application.getJobDescription().isEmpty()) {
             text.append("\n职位描述：\n").append(application.getJobDescription()).append("\n");
@@ -809,5 +835,453 @@ public class MockInterviewService {
         }
 
         return text.toString();
+    }
+
+    // ==================== 新增方法：考察计划与技能管理 ====================
+
+    /**
+     * 确保技能标签存在于数据库中
+     * <p>
+     * 如果技能不存在，使用 AI 生成技能信息并批量插入
+     * </p>
+     *
+     * @param skillNames 技能名称列表
+     * @param skillGeneratorAgent 技能生成 Agent
+     * @return 技能名称 -> 技能ID 的映射
+     */
+    private Map<String, Long> ensureSkillsExist(List<String> skillNames,
+                                                  SkillGeneratorAgent skillGeneratorAgent) {
+        Map<String, Long> skillMap = new HashMap<>();
+
+        // 1. 查询已存在的技能
+        List<SkillTag> existingSkills = skillTagMapper.selectList(
+                new LambdaQueryWrapper<SkillTag>()
+                        .in(SkillTag::getSkillName, skillNames)
+        );
+
+        // 2. 构建已存在技能的映射
+        for (SkillTag skill : existingSkills) {
+            skillMap.put(skill.getSkillName(), skill.getSkillId());
+        }
+
+        // 3. 找出缺失的技能
+        List<String> missingSkills = skillNames.stream()
+                .filter(name -> !skillMap.containsKey(name))
+                .collect(Collectors.toList());
+
+        // 4. 如果没有缺失的，直接返回
+        if (missingSkills.isEmpty()) {
+            return skillMap;
+        }
+
+        // 5. 使用 AI 生成缺失的技能信息 ⭐
+        log.info("检测到 {} 个缺失的技能，使用 AI 生成：{}", missingSkills.size(), missingSkills);
+
+        try {
+            // LangChain4j 会自动将 AI 返回的 JSON 解析为 List<SkillTag>
+            List<SkillTag> newSkills = skillGeneratorAgent.generateSkillTags(missingSkills);
+
+            // 6. 批量插入新技能
+            for (SkillTag skill : newSkills) {
+                skillTagMapper.insert(skill);
+                skillMap.put(skill.getSkillName(), skill.getSkillId());
+                log.info("创建新技能：{} (ID: {})", skill.getSkillName(), skill.getSkillId());
+            }
+        } catch (Exception e) {
+            log.error("AI 生成技能失败，使用默认值", e);
+            // 返回只有名称的默认技能
+            for (String skillName : missingSkills) {
+                SkillTag defaultSkill = SkillTag.builder()
+                        .skillName(skillName)
+                        .category("未分类")
+                        .description("AI 自动生成")
+                        .difficultyBase(3)
+                        .build();
+                skillTagMapper.insert(defaultSkill);
+                skillMap.put(skillName, defaultSkill.getSkillId());
+                log.info("创建默认技能：{} (ID: {})", skillName, defaultSkill.getSkillId());
+            }
+        }
+
+        return skillMap;
+    }
+
+    /**
+     * 确保简历摘要不为空
+     * <p>
+     * 如果摘要为空，生成默认摘要
+     * </p>
+     *
+     * @param resumeId 简历ID
+     */
+    private void ensureResumeSummaryNotEmpty(Long resumeId) {
+        UserResume resume = resumeMapper.selectById(resumeId);
+
+        if (resume == null) {
+            log.warn("简历不存在，跳过摘要生成: {}", resumeId);
+            return;
+        }
+
+        // 如果摘要不为空，直接返回
+        if (resume.getSummary() != null && !resume.getSummary().trim().isEmpty()) {
+            return;
+        }
+
+        // 摘要为空，生成默认摘要
+        log.info("简历摘要为空，生成默认摘要，简历ID: {}", resumeId);
+
+        String defaultSummary = generateDefaultResumeSummary(resume);
+
+        // 更新数据库
+        resume.setSummary(defaultSummary);
+        resumeMapper.updateById(resume);
+
+        log.info("简历摘要已生成，简历ID: {}", resumeId);
+    }
+
+    /**
+     * 生成默认简历摘要
+     *
+     * @param resume 简历对象
+     * @return 摘要文本
+     */
+    private String generateDefaultResumeSummary(UserResume resume) {
+        StringBuilder summary = new StringBuilder();
+
+        // 查询简历技能
+        List<ResumeSkill> skills = resumeSkillMapper.selectList(
+                new LambdaQueryWrapper<ResumeSkill>()
+                        .eq(ResumeSkill::getResumeId, resume.getResumeId())
+        );
+
+        // 查询项目经验
+        List<ResumeProject> projects = resumeProjectMapper.selectList(
+                new LambdaQueryWrapper<ResumeProject>()
+                        .eq(ResumeProject::getResumeId, resume.getResumeId())
+        );
+
+        // 查询工作经历
+        List<ResumeWorkExperience> workExps = resumeWorkExperienceMapper.selectList(
+                new LambdaQueryWrapper<ResumeWorkExperience>()
+                        .eq(ResumeWorkExperience::getResumeId, resume.getResumeId())
+        );
+
+        // 构建摘要文本
+        if (!workExps.isEmpty()) {
+            summary.append("工作经验：\n");
+            for (ResumeWorkExperience work : workExps) {
+                summary.append(String.format("- %s：%s\n",
+                        work.getCompanyName(),
+                        work.getPosition()));
+            }
+            summary.append("\n");
+        }
+
+        if (!projects.isEmpty()) {
+            summary.append("项目经验：\n");
+            for (ResumeProject project : projects) {
+                summary.append(String.format("- %s（%s）\n",
+                        project.getProjectName(),
+                        project.getRole()));
+            }
+            summary.append("\n");
+        }
+
+        if (!skills.isEmpty()) {
+            // 批量查询 skill_tags 获取技能名称
+            List<Long> skillIds = skills.stream()
+                    .map(ResumeSkill::getSkillId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            List<SkillTag> skillTags = skillIds.isEmpty() ? List.of() :
+                    skillTagMapper.selectBatchIds(skillIds);
+
+            // 构建 skillId -> skillName 映射
+            Map<Long, String> skillNameMap = skillTags.stream()
+                    .collect(Collectors.toMap(
+                            SkillTag::getSkillId,
+                            SkillTag::getSkillName,
+                            (existing, replacement) -> existing
+                    ));
+
+            summary.append("技能列表：\n");
+            for (ResumeSkill skill : skills) {
+                String skillName = skillNameMap.getOrDefault(skill.getSkillId(), "未知技能");
+                summary.append(String.format("- %s（%s）\n",
+                        skillName,
+                        skill.getProficiencyLevel()));
+            }
+        }
+
+        // 如果全部为空，生成极简摘要
+        if (summary.length() == 0) {
+            summary.append("求职者，目标职位：")
+                    .append(resume.getTargetLevel() != null ? resume.getTargetLevel() : "未指定")
+                    .append("\n");
+        }
+
+        return summary.toString();
+    }
+
+    /**
+     * 暂停面试
+     *
+     * @param sessionId 会话ID
+     * @return 操作结果
+     */
+    @Transactional
+    public Result<Void> pauseInterview(String sessionId) {
+        MockInterviewSession session = sessionMapper.selectById(sessionId);
+
+        if (session == null) {
+            return Result.error("会话不存在");
+        }
+
+        if ("PAUSED".equals(session.getState())) {
+            return Result.error("会话已暂停");
+        }
+
+        // 1. 更新会话状态
+        session.setState("PAUSED");
+        session.setPausedAt(LocalDateTime.now());
+        sessionMapper.updateById(session);
+
+        // 2. 更新当前执行中的计划状态
+        evaluationMapper.update(null,
+                new LambdaUpdateWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getPlanStatus, "IN_PROGRESS")
+                        .set(MockInterviewEvaluation::getPlanStatus, "PAUSED")
+        );
+
+        // 3. 持久化所有 Agent 记忆
+        agentFactory.persistMemories(sessionId);
+
+        log.info("会话 {} 已暂停", sessionId);
+
+        return Result.success();
+    }
+
+    /**
+     * 恢复面试
+     *
+     * @param sessionId 会话ID
+     * @return 操作结果
+     */
+    @Transactional
+    public Result<Void> resumeInterview(String sessionId) {
+        MockInterviewSession session = sessionMapper.selectById(sessionId);
+
+        if (session == null) {
+            return Result.error("会话不存在");
+        }
+
+        if (!"PAUSED".equals(session.getState())) {
+            return Result.error("会话未暂停，无法恢复");
+        }
+
+        // 1. 恢复所有 Agent 记忆
+        // 注意：这里需要重新创建 Agent，因为记忆已经被持久化
+        // 实际恢复逻辑在 InterviewAgentFactory 中处理
+
+        // 2. 恢复暂停中的计划状态
+        evaluationMapper.update(null,
+                new LambdaUpdateWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getPlanStatus, "PAUSED")
+                        .set(MockInterviewEvaluation::getPlanStatus, "PENDING")
+        );
+
+        // 3. 更新会话状态
+        session.setState("TECHNICAL_QA");
+        session.setResumedAt(LocalDateTime.now());
+        sessionMapper.updateById(session);
+
+        log.info("会话 {} 已恢复", sessionId);
+
+        return Result.success();
+    }
+
+    // ==================== 问题计划管理 ====================
+
+    /**
+     * 生成并保存问题计划
+     * <p>
+     * 在会话创建时调用，生成完整的 25 轮问题计划并保存到数据库
+     * </p>
+     *
+     * @param sessionId 会话ID
+     * @return 生成的计划数量
+     */
+    @Transactional
+    public int generateAndSaveQuestionPlans(String sessionId) {
+        // 1. 获取会话
+        MockInterviewSession session = sessionMapper.selectById(sessionId);
+        if (session == null) {
+            throw new IllegalArgumentException("会话不存在: " + sessionId);
+        }
+
+        // 2. 获取 Agent
+        InterviewAgentFactory.InterviewAgents agents = agentFactory.getAgents(sessionId);
+        if (agents == null) {
+            throw new IllegalStateException("Agent 未初始化: " + sessionId);
+        }
+
+        // 3. 构建计划生成上下文
+        String context = buildPlanGenerationContext(session);
+
+        // 4. 调用 ViceInterviewer 生成计划（LangChain4j 自动反序列化）
+        List<QuestionPlanDTO> plans = agents.viceInterviewer().generateQuestionPlan(context);
+
+        if (plans == null || plans.isEmpty()) {
+            log.warn("生成问题计划失败，会话ID: {}", sessionId);
+            return 0;
+        }
+
+        // 5. 保存计划到数据库
+        int savedCount = 0;
+        for (QuestionPlanDTO plan : plans) {
+            MockInterviewEvaluation evaluation = MockInterviewEvaluation.builder()
+                    .sessionId(sessionId)
+                    .roundNumber(plan.getRoundNumber())
+                    .planStatus("PENDING")
+                    .skillName(plan.getSkillName())
+                    .topicSource(plan.getTopicSource())
+                    .questionType(plan.getQuestionType())
+                    .plannedDifficulty(plan.getDifficulty())
+                    .contextInfo(plan.getContextInfo())
+                    .reason(plan.getReason())
+                    .build();
+
+            evaluationMapper.insert(evaluation);
+            savedCount++;
+        }
+
+        // 6. 更新会话的总计划数
+        session.setTotalPlans(savedCount);
+        session.setCompletedPlans(0);
+        sessionMapper.updateById(session);
+
+        log.info("生成并保存问题计划成功，会话ID: {}, 计划数: {}", sessionId, savedCount);
+
+        return savedCount;
+    }
+
+    /**
+     * 获取下一个待执行的计划
+     * <p>
+     * 查找 plan_status 为 PENDING 的计划，按轮次和序号排序
+     * </p>
+     *
+     * @param sessionId 会话ID
+     * @return 下一个待执行的计划，如果没有则返回 null
+     */
+    public MockInterviewEvaluation getNextPendingPlan(String sessionId) {
+        List<MockInterviewEvaluation> pendingPlans = evaluationMapper.selectList(
+                new LambdaQueryWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getPlanStatus, "PENDING")
+                        .orderByAsc(MockInterviewEvaluation::getRoundNumber)
+                        .last("LIMIT 1")
+        );
+
+        return pendingPlans.isEmpty() ? null : pendingPlans.get(0);
+    }
+
+    /**
+     * 更新计划状态
+     *
+     * @param evaluationId 评估记录ID
+     * @param newStatus 新状态
+     */
+    @Transactional
+    public void updatePlanStatus(Long evaluationId, String newStatus) {
+        evaluationMapper.update(null,
+                new LambdaUpdateWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getEvaluationId, evaluationId)
+                        .set(MockInterviewEvaluation::getPlanStatus, newStatus)
+        );
+
+        log.debug("更新计划状态: evaluationId={}, newStatus={}", evaluationId, newStatus);
+    }
+
+    /**
+     * 获取面试进度
+     *
+     * @param sessionId 会话ID
+     * @return 面试进度信息
+     */
+    public com.jobtracker.dto.MockInterviewProgress getProgress(String sessionId) {
+        MockInterviewSession session = sessionMapper.selectById(sessionId);
+        if (session == null) {
+            throw new IllegalArgumentException("会话不存在: " + sessionId);
+        }
+
+        // 统计各状态的计划数
+        Long pendingCount = evaluationMapper.selectCount(
+                new LambdaQueryWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getPlanStatus, "PENDING")
+        );
+
+        Long completedCount = evaluationMapper.selectCount(
+                new LambdaQueryWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getPlanStatus, "COMPLETED")
+        );
+
+        int totalPlans = session.getTotalPlans() != null ? session.getTotalPlans() : 0;
+        int completedPlans = completedCount.intValue();
+        int pendingPlans = pendingCount.intValue();
+
+        // 计算进度百分比
+        double progressPercentage = totalPlans > 0
+                ? (completedPlans * 100.0 / totalPlans)
+                : 0.0;
+
+        return com.jobtracker.dto.MockInterviewProgress.builder()
+                .sessionId(sessionId)
+                .state(session.getState())
+                .currentRound(session.getCurrentRound())
+                .totalPlans(totalPlans)
+                .completedPlans(completedPlans)
+                .pendingPlans(pendingPlans)
+                .progressPercentage(Math.round(progressPercentage * 100.0) / 100.0)
+                .pausedAt(session.getPausedAt() != null ? session.getPausedAt().toString() : null)
+                .resumedAt(session.getResumedAt() != null ? session.getResumedAt().toString() : null)
+                .build();
+    }
+
+    /**
+     * 构建计划生成上下文
+     */
+    private String buildPlanGenerationContext(MockInterviewSession session) {
+        return String.format("""
+                # 任务
+                请为以下面试会话生成完整的 25 轮问题计划。
+
+                # 面试信息
+                - 岗位: %s
+                - 级别: %s
+                - 轮次: 25
+
+                # 简历信息
+                %s
+
+                # 岗位要求
+                %s
+
+                # 要求
+                1. 每轮包含 1-3 个问题（序列号 1-3）
+                2. 覆盖简历中的所有核心技能
+                3. 覆盖 JD 中的所有要求技能
+                4. 难度递进（前 5 轮简单，中间 15 轮中等，最后 5 轮困难）
+                5. 包含开放性问题、技术问题、情景问题
+                """,
+                session.getJobTitle(),
+                session.getSeniorityLevel(),
+                session.getResumeSnapshot() != null ? session.getResumeSnapshot() : "无",
+                session.getJdSnapshot() != null ? session.getJdSnapshot() : "无"
+        );
     }
 }

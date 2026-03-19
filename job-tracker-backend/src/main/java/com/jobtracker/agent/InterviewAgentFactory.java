@@ -98,11 +98,18 @@ public class InterviewAgentFactory {
                 .systemMessage(buildExpertEvaluatorSystemMessage(context))
                 .build();
 
+        // 创建技能生成 Agent（不需要记忆）
+        SkillGeneratorAgent skillGenerator = AiServices.builder(SkillGeneratorAgent.class)
+                .chatModel(chatModel)
+                .systemMessage(buildSkillGeneratorSystemMessage())
+                .build();
+
         InterviewAgents agents = new InterviewAgents(
                 sessionId,
                 mainInterviewer,
                 viceInterviewer,
-                evaluator
+                evaluator,
+                skillGenerator  // 新增：技能生成 Agent
         );
 
         // 缓存
@@ -241,20 +248,80 @@ public class InterviewAgentFactory {
     private String buildViceInterviewerSystemMessage(String context) {
         return String.format("""
                 # 角色设定
-                你是面试流程控制器，负责维护面试进度和智能选题。
+                你是副面试官，负责两个核心任务：
+                1. 在创建会话时，生成完整的 25 轮考察计划
+                2. 在面试过程中，决定下一步的选题（虽然主要按计划执行，但保留灵活性）
 
                 # 当前上下文
                 %s
 
-                # 选题策略（优先级）
+                # 任务 1：生成考察计划（generateQuestionPlan 方法）
 
-                ## 1. 项目深挖（最高优先级）
+                当调用 generateQuestionPlan 方法时，你需要生成完整的 25 轮考察计划。
+
+                ## 考察顺序规则
+                1. **第 1 轮**：
+                   - 先做项目深挖（建立对话）
+                   - 验证 1 个简历声称的技能
+
+                2. **第 2-10 轮**：
+                   - 验证 JD 核心技能
+                   - 优先验证简历声称熟练掌握的技能
+
+                3. **第 11-20 轮**：
+                   - 补充 JD 要求但简历未提及的技能
+                   - 深度考察
+
+                4. **第 21-25 轮**：
+                   - 通用能力（算法、数据结构、系统设计）
+                   - 或 HR 问题
+
+                ## 考察计划输出格式
+                返回 JSON 数组，每个元素包含：
+                - round_number: 轮次（1-25）
+                - sequence_number: 该轮的序号（从1开始）
+                - skill_name: 技能名称
+                - topic_source: 选题来源（PROJECT_DEEP_DIVE, SKILL_VERIFICATION, JD_REQUIREMENT, GENERAL）
+                - question_type: 问题类型
+                - difficulty: 难度等级（1-5）
+                - context_info: 上下文信息
+                - reason: 选择原因
+
+                ## 考察计划输出示例
+                [
+                  {
+                    "round_number": 1,
+                    "sequence_number": 1,
+                    "skill_name": "项目深挖",
+                    "topic_source": "PROJECT_DEEP_DIVE",
+                    "question_type": "PROJECT_DEEP_DIVE",
+                    "difficulty": 3,
+                    "context_info": "简历上有电商秒杀项目",
+                    "reason": "先了解项目经验，建立对话"
+                  },
+                  {
+                    "round_number": 1,
+                    "sequence_number": 2,
+                    "skill_name": "Redis",
+                    "topic_source": "SKILL_VERIFICATION",
+                    "question_type": "SKILL_VERIFICATION",
+                    "difficulty": 4,
+                    "context_info": "简历声称精通 Redis",
+                    "reason": "验证简历声称是否真实"
+                  }
+                ]
+
+                # 任务 2：决定下一步选题（decideNextStep 方法）
+
+                ## 选题策略（优先级）
+
+                ### 1. 项目深挖（最高优先级）
                 如果用户回答中涉及了简历中的项目：
                 - 继续深挖该项目的技术细节
                 - 考察项目经验的真实性
                 - 评估项目贡献度
 
-                ## 2. 技能验证（次优先级）
+                ### 2. 技能验证（次优先级）
                 针对简历中"声称"的技能：
                 - 优先验证"精通"、"熟练掌握"的技能
                 - 通过深入问题判断技能真实性
@@ -267,38 +334,18 @@ public class InterviewAgentFactory {
                 3. 同一技能已经验证超过 3 轮
                 4. 用户回答内容明显与该技能无关
 
-                验证失败后，应该：
-                - 切换到 JD 要求的其他技能
-                - 或者切换到项目深挖
-                - 或者切换到通用问题
-                - **不要再问同一个技能！**
-
-                ## 3. JD 要求覆盖
+                ### 3. JD 要求覆盖
                 - 确保 JD 中的核心技能都被覆盖
                 - 补充简历未提及但 JD 要求的技能
 
-                # 返回值说明
-                你需要返回一个 NextStepDecision 对象，包含以下字段：
+                ## NextStepDecision 输出格式
+                返回 JSON 对象，包含以下字段：
                 - action: 动作类型（NEXT_QUESTION, FINISH_INTERVIEW, SWITCH_TO_HR）
-                - nextTopic: 下一个选题（如 "Redis 集群 Slot 迁移"）
-                - topicSource: 选题来源（PROJECT_DEEP_DIVE, SKILL_VERIFICATION, JD_REQUIREMENT, GENERAL）
+                - nextTopic: 下一个选题
+                - topicSource: 选题来源
                 - reason: 选择该选题的原因
-                - questionType: 问题类型（同上）
+                - questionType: 问题类型
                 - difficulty: 难度等级（1-5）
-
-                # topic_source 说明
-                - PROJECT_DEEP_DIVE: 项目深挖
-                - SKILL_VERIFICATION: 技能验证
-                - JD_REQUIREMENT: JD 要求覆盖
-                - GENERAL: 通用问题
-
-                # ⚠️️ 输出格式要求（必须遵守）
-                **严禁使用 Markdown 代码块！**
-                - ❌ 错误示例：```json {...}```
-                - ✅ 正确示例：{"action": "NEXT_QUESTION", ...}
-                - 直接输出纯 JSON，不要有任何标记
-                - 不要包含 ```json 或 ``` 标记
-                - 开头直接是 `{`，结尾直接是 `}`
                 """,
                 context
         );
@@ -342,7 +389,7 @@ public class InterviewAgentFactory {
                 - **EXCEEDS_EXPECTATIONS**：回答超出简历声称的水平
 
                 # 返回值说明
-                你需要返回一个 EvaluationResult 对象，包含以下字段：
+                返回 JSON 对象，包含以下字段：
                 - scores: ScoreDetail 对象
                   * technical: 技术准确性（0-4）
                   * logic: 逻辑清晰度（0-3）
@@ -355,16 +402,76 @@ public class InterviewAgentFactory {
                 - feedback: 反馈意见
                 - suggestion: 改进建议
 
-                # ⚠️️ 输出格式要求（必须遵守）
-                **严禁使用 Markdown 代码块！**
-                - ❌ 错误示例：```json {...}```
-                - ✅ 正确示例：{"scores": {...}, "totalScore": 8.5, ...}
-                - 直接输出纯 JSON，不要有任何标记
-                - 不要包含 ```json 或 ``` 标记
-                - 开头直接是 `{`，结尾直接是 `}`
+                # 输出示例
+                {
+                  "scores": {
+                    "technical": 3.5,
+                    "logic": 2.0,
+                    "depth": 2.0
+                  },
+                  "totalScore": 7.5,
+                  "credibilityAssessment": {
+                    "matchLevel": "MOSTLY_MATCH",
+                    "gapDescription": "回答基本符合简历声称，但在深度上略有欠缺",
+                    "exaggerationScore": 0.2
+                  },
+                  "feedback": "技术基础扎实，对 Redis 的常用场景理解清晰...",
+                  "suggestion": "建议深入学习 Redis 的底层原理..."
+                }
                 """,
                 context
         );
+    }
+
+    /**
+     * 构建技能生成 Agent System Message
+     */
+    private String buildSkillGeneratorSystemMessage() {
+        return """
+                # 角色
+                你是一个技术技能分类专家。
+
+                # 任务
+                根据提供的技能名称列表，生成完整的技能标签信息。
+
+                # 输出格式
+                返回 JSON 数组，每个元素包含：
+                - skill_name: 技能名称
+                - category: 分类（编程语言/框架/数据库/中间件/工具/其他）
+                - description: 技能描述（20-50字）
+                - difficulty_level: 难度等级（1-5）
+
+                # 分类选项
+                - 编程语言：Java, Python, Go, JavaScript, TypeScript, C++
+                - 框架：Spring Boot, Django, Flask, Express, Vue, React
+                - 数据库：MySQL, PostgreSQL, MongoDB, Redis
+                - 中间件：Kafka, RabbitMQ, RocketMQ
+                - 工具：Git, Docker, Kubernetes, Jenkins
+                - 其他：算法, 数据结构, 设计模式
+
+                # 难度等级（1-5）
+                1: 入门级
+                2: 初级
+                3: 中级
+                4: 高级
+                5: 专家级
+
+                # 输出示例
+                [
+                  {
+                    "skill_name": "Redis",
+                    "category": "数据库",
+                    "description": "内存数据库，用于缓存、消息队列、分布式锁",
+                    "difficulty_level": 4
+                  },
+                  {
+                    "skill_name": "Spring Boot",
+                    "category": "框架",
+                    "description": "Java 微服务开发框架，简化 Spring 应用配置和部署",
+                    "difficulty_level": 4
+                  }
+                ]
+                """;
     }
 
     /**
@@ -374,7 +481,8 @@ public class InterviewAgentFactory {
             String sessionId,
             MainInterviewerAgent mainInterviewer,
             ViceInterviewerAgent viceInterviewer,
-            ExpertEvaluatorAgent evaluator
+            ExpertEvaluatorAgent evaluator,
+            SkillGeneratorAgent skillGenerator  // 新增：技能生成 Agent
     ) {
         /**
          * 检查是否所有 Agent 都已创建
@@ -382,7 +490,8 @@ public class InterviewAgentFactory {
         public boolean isReady() {
             return mainInterviewer != null
                     && viceInterviewer != null
-                    && evaluator != null;
+                    && evaluator != null
+                    && skillGenerator != null;  // 新增检查
         }
     }
 }

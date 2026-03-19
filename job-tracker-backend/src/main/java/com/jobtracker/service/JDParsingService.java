@@ -1,7 +1,7 @@
 package com.jobtracker.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JDParsingService {
 
-    private final ChatLanguageModel chatModel;
+    private final OpenAiChatModel chatModel;
     private final ObjectMapper objectMapper;
 
     /**
@@ -40,7 +40,7 @@ public class JDParsingService {
 
         try {
             // 调用 LLM 解析
-            String aiResponse = chatModel.generate(prompt);
+            String aiResponse = chatModel.chat(prompt);
 
             // 清理可能的 Markdown 标记
             String cleanedResponse = cleanMarkdownCodeBlocks(aiResponse);

@@ -54,7 +54,17 @@ public class MockInterviewController {
         // 创建 Agent 组
         agentFactory.createAgents(session);
 
+        // 开始面试
         interviewService.startInterview(session.getSessionId());
+
+        // 生成并保存问题计划（25 轮）
+        try {
+            int planCount = interviewService.generateAndSaveQuestionPlans(session.getSessionId());
+            log.info("生成问题计划成功: sessionId={}, planCount={}", session.getSessionId(), planCount);
+        } catch (Exception e) {
+            log.error("生成问题计划失败: sessionId={}", session.getSessionId(), e);
+            // 计划生成失败不影响会话创建，后续可以手动重试
+        }
 
         log.info("创建面试会话成功: sessionId={}, userId={}, applicationId={}",
                 session.getSessionId(), userId, request.getApplicationId());
@@ -126,8 +136,7 @@ public class MockInterviewController {
             agents = agentFactory.createAgents(session);
         }
 
-        // ===== 新增：评估用户回答 =====
-        // 获取上一轮的问题（用于构建评估上下文）
+        // ===== 评估上一轮用户回答 =====
         InterviewMessage lastQuestion = messageService.getLastQuestion(sessionId);
         if (lastQuestion != null) {
             try {
@@ -139,7 +148,7 @@ public class MockInterviewController {
                         session.getCurrentRound()
                 );
 
-                // 调用评审专家评估（现在返回 EvaluationResult 对象）
+                // 调用评审专家评估
                 com.jobtracker.agent.interview.dto.EvaluationResult evaluationResult =
                         agents.evaluator().evaluate(evaluationContext);
 
@@ -155,8 +164,7 @@ public class MockInterviewController {
                 log.debug("创建评分记录成功，会话: {}, 轮次: {}, 分数: {}",
                         sessionId, session.getCurrentRound(), evaluation.getTotalScore());
 
-                // ===== 新增：每轮对话后持久化 Agent 记忆 =====
-                // 防止 Agent 在面试结束前丢失
+                // 持久化 Agent 记忆
                 try {
                     agentFactory.persistMemories(sessionId);
                     log.debug("持久化 Agent 记忆成功，会话: {}, 轮次: {}", sessionId, session.getCurrentRound());
@@ -164,104 +172,35 @@ public class MockInterviewController {
                     log.warn("持久化 Agent 记忆失败，会话: {}, 轮次: {}", sessionId, session.getCurrentRound(), e);
                 }
 
-            } catch (dev.langchain4j.service.output.OutputParsingException e) {
-                // LLM 返回了 Markdown 代码块，尝试清理后重试
-                log.warn("Agent 返回格式错误（可能是 Markdown 代码块），尝试清理后重新解析，会话: {}, 轮次: {}",
-                        sessionId, session.getCurrentRound());
+                // 更新上一轮的计划状态为 COMPLETED
+                // 找到上一轮对应的评估记录并更新状态
+                evaluationService.updateEvaluationPlanStatus(sessionId, session.getCurrentRound(), "COMPLETED");
 
-                try {
-                    // 从异常信息中提取原始内容并清理
-                    String rawContent = e.getMessage();
-                    if (rawContent != null && (rawContent.contains("```json") || rawContent.contains("```"))) {
-                        String cleanedContent = cleanMarkdownCodeBlocks(rawContent);
-
-                        // 使用 ObjectMapper 手动解析
-                        com.fasterxml.jackson.databind.ObjectMapper mapper =
-                                new com.fasterxml.jackson.databind.ObjectMapper();
-                        com.jobtracker.agent.interview.dto.EvaluationResult evaluationResult =
-                                mapper.readValue(cleanedContent, com.jobtracker.agent.interview.dto.EvaluationResult.class);
-
-                        // 从 EvaluationResult 对象创建评分记录
-                        MockInterviewEvaluation evaluation = createEvaluationFromResult(
-                                sessionId,
-                                session.getCurrentRound(),
-                                lastQuestion.getContent(),
-                                request.getContent(),
-                                evaluationResult
-                        );
-
-                        log.info("清理 Markdown 标记后成功解析，会话: {}, 轮次: {}, 分数: {}",
-                                sessionId, session.getCurrentRound(), evaluation.getTotalScore());
-
-                        // 持久化 Agent 记忆
-                        try {
-                            agentFactory.persistMemories(sessionId);
-                        } catch (Exception persistException) {
-                            log.warn("持久化 Agent 记忆失败", persistException);
-                        }
-                    }
-                } catch (Exception cleaningException) {
-                    log.error("清理 Markdown 标记后仍然解析失败，跳过本轮评分，会话: {}, 轮次: {}",
-                            sessionId, session.getCurrentRound(), cleaningException);
-                }
             } catch (Exception e) {
                 log.warn("评估回答失败，跳过本轮评分，会话: {}, 轮次: {}",
                         sessionId, session.getCurrentRound(), e);
             }
         }
 
-        // 副面试官决定下一步（现在返回 NextStepDecision 对象）
-        String nextStepContext = buildNextStepContext(session, request.getContent());
-        com.jobtracker.agent.interview.dto.NextStepDecision nextStepDecision;
+        // ===== 按照预生成的计划执行 =====
+        // 获取下一个待执行的计划
+        com.jobtracker.entity.MockInterviewEvaluation nextPlan = interviewService.getNextPendingPlan(sessionId);
 
-        try {
-            nextStepDecision = agents.viceInterviewer().decideNextStep(nextStepContext);
-        } catch (dev.langchain4j.service.output.OutputParsingException e) {
-            // LLM 返回了 Markdown 代码块，尝试清理后重试
-            log.warn("decideNextStep 返回格式错误（可能是 Markdown 代码块），尝试清理后重新解析，会话: {}",
-                    sessionId);
-
-            try {
-                String rawContent = e.getMessage();
-                if (rawContent != null && (rawContent.contains("```json") || rawContent.contains("```"))) {
-                    String cleanedContent = cleanMarkdownCodeBlocks(rawContent);
-
-                    com.fasterxml.jackson.databind.ObjectMapper mapper =
-                            new com.fasterxml.jackson.databind.ObjectMapper();
-                    nextStepDecision = mapper.readValue(
-                            cleanedContent,
-                            com.jobtracker.agent.interview.dto.NextStepDecision.class
-                    );
-
-                    log.info("清理 Markdown 标记后成功解析 NextStepDecision，会话: {}", sessionId);
-                } else {
-                    // 无法恢复，使用默认决策
-                    log.error("无法解析 NextStepDecision，使用默认决策继续面试，会话: {}", sessionId);
-                    nextStepDecision = com.jobtracker.agent.interview.dto.NextStepDecision.builder()
-                            .action(com.jobtracker.agent.interview.dto.NextStepDecision.Action.NEXT_QUESTION)
-                            .nextTopic("请继续自我介绍")
-                            .topicSource(com.jobtracker.agent.interview.dto.NextStepDecision.TopicSource.GENERAL)
-                            .reason("解析失败，使用默认话题")
-                            .questionType(com.jobtracker.agent.interview.dto.NextStepDecision.QuestionType.OPEN_ENDED)
-                            .difficulty(3)
-                            .build();
-                }
-            } catch (Exception cleaningException) {
-                log.error("清理 Markdown 标记后仍然解析失败 NextStepDecision，使用默认决策，会话: {}",
-                        sessionId, cleaningException);
-                nextStepDecision = com.jobtracker.agent.interview.dto.NextStepDecision.builder()
-                        .action(com.jobtracker.agent.interview.dto.NextStepDecision.Action.NEXT_QUESTION)
-                        .nextTopic("请继续自我介绍")
-                        .topicSource(com.jobtracker.agent.interview.dto.NextStepDecision.TopicSource.GENERAL)
-                        .reason("解析失败，使用默认话题")
-                        .questionType(com.jobtracker.agent.interview.dto.NextStepDecision.QuestionType.OPEN_ENDED)
-                        .difficulty(3)
-                        .build();
-            }
+        if (nextPlan == null) {
+            // 没有更多计划，返回提示信息
+            log.info("没有更多问题计划，面试已结束，会话ID: {}", sessionId);
+            return Result.error("所有问题已完成，请点击结束面试按钮查看报告");
         }
 
-        // 主面试官生成问题
-        String questionContext = buildQuestionContext(session, nextStepDecision);
+        // 更新计划状态为 IN_PROGRESS
+        interviewService.updatePlanStatus(nextPlan.getEvaluationId(), "IN_PROGRESS");
+
+        // 更新会话的当前计划ID
+        session.setCurrentPlanId(nextPlan.getEvaluationId());
+        interviewService.updateSession(session);
+
+        // ===== 根据计划生成问题 =====
+        String questionContext = buildQuestionContextFromPlan(session, nextPlan);
         String question = agents.mainInterviewer().askQuestion(questionContext);
 
         // 保存面试官问题
@@ -269,8 +208,8 @@ public class MockInterviewController {
                 sessionId,
                 session.getCurrentRound() + 1,
                 question,
-                null,  // skillId
-                null   // skillName
+                nextPlan.getSkillId(),
+                nextPlan.getSkillName()
         );
 
         interviewService.nextRound(sessionId);
@@ -392,6 +331,38 @@ public class MockInterviewController {
         log.info("面试报告生成完成（简化版），会话ID: {}, 总分: {}", sessionId, totalScore);
 
         return Result.success("面试已结束，报告生成成功", session);
+    }
+
+    /**
+     * 暂停面试
+     * POST /api/mock-interview/sessions/{sessionId}/pause
+     */
+    @PostMapping("/sessions/{sessionId}/pause")
+    public Result<Void> pauseInterview(@PathVariable String sessionId) {
+        return interviewService.pauseInterview(sessionId);
+    }
+
+    /**
+     * 恢复面试
+     * POST /api/mock-interview/sessions/{sessionId}/resume
+     */
+    @PostMapping("/sessions/{sessionId}/resume")
+    public Result<Void> resumeInterview(@PathVariable String sessionId) {
+        return interviewService.resumeInterview(sessionId);
+    }
+
+    /**
+     * 获取面试进度
+     * GET /api/mock-interview/sessions/{sessionId}/progress
+     */
+    @GetMapping("/sessions/{sessionId}/progress")
+    public Result<com.jobtracker.dto.MockInterviewProgress> getProgress(@PathVariable String sessionId) {
+        try {
+            com.jobtracker.dto.MockInterviewProgress progress = interviewService.getProgress(sessionId);
+            return Result.success(progress);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     /**
@@ -626,6 +597,54 @@ public class MockInterviewController {
                 userAnswer,
                 session.getResumeSnapshot() != null ? session.getResumeSnapshot() : "无",
                 session.getJdSnapshot() != null ? session.getJdSnapshot() : "无"
+        );
+    }
+
+    /**
+     * 从计划构建提问上下文
+     * <p>
+     * 根据预生成的问题计划，构建主面试官生成问题的上下文
+     * </p>
+     */
+    private String buildQuestionContextFromPlan(
+            MockInterviewSession session,
+            com.jobtracker.entity.MockInterviewEvaluation plan
+    ) {
+        return String.format("""
+                # 任务
+                请根据以下计划生成一个面试问题。
+
+                # 问题计划
+                - 技能: %s
+                - 选题来源: %s
+                - 问题类型: %s
+                - 难度: %d
+                - 上下文信息: %s
+                - 选择原因: %s
+
+                # 面试信息
+                - 岗位: %s
+                - 级别: %s
+                - 当前轮次: %d
+
+                # 简历信息
+                %s
+
+                # 要求
+                1. 问题必须符合计划中的技能和难度要求
+                2. 问题类型要匹配（开放性问题/技术问题/情景问题）
+                3. 根据上下文信息调整问题细节
+                """,
+                plan.getSkillName() != null ? plan.getSkillName() : "通用",
+                plan.getTopicSource() != null ? plan.getTopicSource() : "UNKNOWN",
+                plan.getQuestionType() != null ? plan.getQuestionType() : "OPEN_ENDED",
+                plan.getPlannedDifficulty() != null ? plan.getPlannedDifficulty() : 3,
+                plan.getContextInfo() != null ? plan.getContextInfo() : "无",
+                plan.getReason() != null ? plan.getReason() : "无",
+                session.getJobTitle(),
+                session.getSeniorityLevel(),
+                session.getCurrentRound(),
+                session.getResumeSnapshot() != null ? session.getResumeSnapshot() : "无"
         );
     }
 

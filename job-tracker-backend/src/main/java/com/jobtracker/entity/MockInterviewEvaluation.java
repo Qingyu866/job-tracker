@@ -51,6 +51,45 @@ public class MockInterviewEvaluation {
      */
     private String skillName;
 
+    // ==================== 考察计划相关字段（新增）====================
+
+    /**
+     * 计划状态：PENDING(待考察), IN_PROGRESS(执行中), COMPLETED(已完成), SKIPPED(跳过), PAUSED(暂停中)
+     */
+    private String planStatus;
+
+    /**
+     * 选题来源：PROJECT_DEEP_DIVE, SKILL_VERIFICATION, JD_REQUIREMENT, GENERAL
+     */
+    private String topicSource;
+
+    /**
+     * 问题类型：PROJECT_DEEP_DIVE, SKILL_VERIFICATION, JD_REQUIREMENT, GENERAL, OPEN_ENDED
+     */
+    private String questionType;
+
+    /**
+     * 计划难度（1-5）
+     */
+    private Integer plannedDifficulty;
+
+    /**
+     * 实际难度（可能与计划不同）
+     */
+    private Integer actualDifficulty;
+
+    /**
+     * 上下文信息（例如：简历声称精通Redis）
+     */
+    private String contextInfo;
+
+    /**
+     * 选择该技能的原因
+     */
+    private String reason;
+
+    // ==================== 面试执行字段 ====================
+
     /**
      * 问题内容（AI生成的问题）
      */
