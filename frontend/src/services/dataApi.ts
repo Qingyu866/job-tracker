@@ -36,6 +36,50 @@ export const dataApi = {
   },
 
   /**
+   * 根据状态获取申请
+   */
+  getApplicationsByStatus: async (status: string): Promise<JobApplication[]> => {
+    const response = await apiClient.get<any>(`/applications/status/${status}`);
+    return response.data.data;
+  },
+
+  /**
+   * 分页查询申请
+   */
+  getApplicationsPage: async (params: {
+    pageNum?: number;
+    pageSize?: number;
+    status?: string;
+  }): Promise<{
+    records: JobApplication[];
+    total: number;
+    size: number;
+    current: number;
+    pages: number;
+  }> => {
+    const response = await apiClient.get<any>('/applications/page', { params });
+    return response.data.data;
+  },
+
+  /**
+   * 获取高优先级申请
+   */
+  getHighPriorityApplications: async (): Promise<JobApplication[]> => {
+    const response = await apiClient.get<any>('/applications/high-priority');
+    return response.data.data;
+  },
+
+  /**
+   * 更新申请状态
+   */
+  updateApplicationStatus: async (id: number, status: string): Promise<string> => {
+    const response = await apiClient.put<any>(`/applications/${id}/status`, null, {
+      params: { status }
+    });
+    return response.data.data;
+  },
+
+  /**
    * 创建申请
    */
   createApplication: async (data: Partial<JobApplication>): Promise<number> => {
@@ -72,6 +116,26 @@ export const dataApi = {
    */
   getCompany: async (id: number): Promise<Company> => {
     const response = await apiClient.get<any>(`/companies/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * 根据名称获取公司
+   */
+  getCompanyByName: async (name: string): Promise<Company> => {
+    const response = await apiClient.get<any>('/companies/name', {
+      params: { name }
+    });
+    return response.data.data;
+  },
+
+  /**
+   * 搜索公司
+   */
+  searchCompanies: async (keyword: string): Promise<Company[]> => {
+    const response = await apiClient.get<any>('/companies/search', {
+      params: { keyword }
+    });
     return response.data.data;
   },
 
@@ -134,6 +198,38 @@ export const dataApi = {
    */
   getInterviewsByApplication: async (applicationId: number): Promise<InterviewRecord[]> => {
     const response = await apiClient.get<any>(`/interviews/application/${applicationId}`);
+    return response.data.data;
+  },
+
+  /**
+   * 获取即将进行的面试
+   */
+  getUpcomingInterviews: async (): Promise<InterviewRecord[]> => {
+    const response = await apiClient.get<any>('/interviews/upcoming');
+    return response.data.data;
+  },
+
+  /**
+   * 获取面试进度
+   */
+  getInterviewProgress: async (applicationId: number): Promise<{
+    totalRounds: number;
+    completedRounds: number;
+    passedRounds: number;
+    currentRound: number;
+    progressText: string;
+    allPassed: boolean;
+    hasFailed: boolean;
+  }> => {
+    const response = await apiClient.get<any>(`/interviews/applications/${applicationId}/progress`);
+    return response.data.data;
+  },
+
+  /**
+   * 获取当前面试
+   */
+  getCurrentInterview: async (applicationId: number): Promise<InterviewRecord> => {
+    const response = await apiClient.get<any>(`/interviews/applications/${applicationId}/current`);
     return response.data.data;
   },
 
@@ -209,6 +305,34 @@ export const dataApi = {
   ): Promise<boolean> => {
     const response = await apiClient.put<any>(`/interviews/${id}/follow-up`, {
       followUpRequired,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * 开始面试
+   */
+  startInterview: async (id: number): Promise<boolean> => {
+    const response = await apiClient.put<any>(`/interviews/${id}/start`);
+    return response.data.data;
+  },
+
+  /**
+   * 标记终面
+   */
+  markInterviewAsFinal: async (id: number, isFinal: boolean): Promise<boolean> => {
+    const response = await apiClient.put<any>(`/interviews/${id}/mark-final`, {
+      isFinal,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * 重新安排面试
+   */
+  rescheduleInterview: async (id: number, newInterviewDate: string): Promise<InterviewRecord> => {
+    const response = await apiClient.post<any>(`/interviews/${id}/reschedule`, {
+      newInterviewDate,
     });
     return response.data.data;
   },

@@ -37,26 +37,13 @@ export function InterviewStartDialog({
   });
 
   useEffect(() => {
-    console.log('InterviewStartDialog useEffect triggered, userInfo:', userInfo);
-    if (userInfo?.id) {
-      loadResumes();
-    } else {
-      console.warn('InterviewStartDialog: userInfo.id is not available, userInfo:', userInfo);
-      setLoading(false);
-    }
-  }, [userInfo?.id]);
+    loadResumes();
+  }, []);
 
   const loadResumes = async () => {
-    if (!userInfo?.id) {
-      console.warn('loadResumes: No user ID available');
-      return;
-    }
-    
-    console.log('Loading resumes for user:', userInfo.id);
-    
     try {
       setLoading(true);
-      const data = await resumeApi.getList(userInfo.id);
+      const data = await resumeApi.getMyResumes();
       console.log('Loaded resumes:', data);
       setResumes(data);
       const defaultResume = data.find((r: UserResume) => r.isDefault);

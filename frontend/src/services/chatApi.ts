@@ -67,6 +67,17 @@ export const chatApi = {
   getImageUrl(imageId: number, sessionKey: string): string {
     return `${CHAT_BASE_URL}/images/${imageId}?sessionId=${sessionKey}`;
   },
+
+  async getImage(imageId: number, sessionKey: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `${CHAT_BASE_URL}/images/${imageId}`,
+      {
+        params: { sessionId: sessionKey },
+        responseType: 'blob'
+      }
+    );
+    return response.data;
+  },
 };
 
 export default chatApi;

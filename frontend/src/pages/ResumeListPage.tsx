@@ -26,10 +26,8 @@ export function ResumeListPage() {
   const [selectedResumes, setSelectedResumes] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (userInfo?.id) {
-      fetchResumes(userInfo.id);
-    }
-  }, [userInfo?.id]);
+    fetchResumes();
+  }, []);
 
   const filteredResumes = resumes.filter((resume) => {
     if (filter === 'default') {

@@ -35,6 +35,11 @@ export const ocrApi = {
     return response.data;
   },
 
+  async getMyRecords(): Promise<OcrRecord[]> {
+    const response = await apiClient.get<OcrRecord[]>('/ocr/records/my');
+    return response.data;
+  },
+
   async uploadImage(file: File): Promise<{ id: number; publicUrl: string }> {
     const formData = new FormData();
     formData.append('file', file);

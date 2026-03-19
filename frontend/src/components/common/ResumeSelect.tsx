@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Check } from 'lucide-react';
 import type { UserResume } from '@/types/resume';
-import { resumeApi } from '@/services/interviewApi';
+import { resumeApi } from '@/services/resumeApi';
 import { ResumeCreateModal } from './ResumeCreateModal';
 
 interface ResumeSelectProps {
@@ -21,11 +21,8 @@ export function ResumeSelect({ value, onChange }: ResumeSelectProps) {
   const fetchResumes = async () => {
     setLoading(true);
     try {
-      const userId = localStorage.getItem('userId');
-      if (userId) {
-        const resumeList = await resumeApi.getUserResumes(Number(userId));
-        setResumes(resumeList);
-      }
+      const resumeList = await resumeApi.getMyResumes();
+      setResumes(resumeList);
     } catch (error) {
       console.error('获取简历列表失败:', error);
     } finally {

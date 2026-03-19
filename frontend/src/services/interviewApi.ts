@@ -128,6 +128,29 @@ export const interviewApi = {
     return transformSession(response.data, companyName);
   },
 
+  async pauseInterview(sessionId: string): Promise<void> {
+    await apiClient.post(`/mock-interview/sessions/${sessionId}/pause`);
+  },
+
+  async resumeInterview(sessionId: string): Promise<void> {
+    await apiClient.post(`/mock-interview/sessions/${sessionId}/resume`);
+  },
+
+  async getProgress(sessionId: string): Promise<{
+    sessionId: string;
+    state: string;
+    currentRound: number;
+    totalPlans: number;
+    completedPlans: number;
+    pendingPlans: number;
+    progressPercentage: number;
+    pausedAt: string | null;
+    resumedAt: string | null;
+  }> {
+    const response = await apiClient.get(`/mock-interview/sessions/${sessionId}/progress`);
+    return response.data;
+  },
+
   async getEvaluations(sessionId: string): Promise<MockInterviewEvaluation[]> {
     const response = await apiClient.get<MockInterviewEvaluation[]>(
       `/mock-interview/sessions/${sessionId}/evaluations`
@@ -185,13 +208,13 @@ export const resumeApi = {
     await apiClient.put(`/resumes/${resumeId}`, resume);
   },
 
-  async getUserResumes(userId: number): Promise<UserResume[]> {
-    const response = await apiClient.get<UserResume[]>(`/resumes/user/${userId}`);
+  async getMyResumes(): Promise<UserResume[]> {
+    const response = await apiClient.get<UserResume[]>('/resumes/my');
     return response.data;
   },
 
-  async getDefaultResume(userId: number): Promise<UserResume> {
-    const response = await apiClient.get<UserResume>(`/resumes/user/${userId}/default`);
+  async getMyDefaultResume(): Promise<UserResume> {
+    const response = await apiClient.get<UserResume>('/resumes/my/default');
     return response.data;
   },
 

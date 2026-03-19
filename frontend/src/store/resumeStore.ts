@@ -14,7 +14,7 @@ interface ResumeState {
   formDirty: boolean;
   currentStep: number;
 
-  fetchResumes: (userId: number) => Promise<void>;
+  fetchResumes: () => Promise<void>;
   fetchResumeDetail: (resumeId: number) => Promise<void>;
   createResume: (data: CreateResumeRequest) => Promise<UserResume>;
   updateResume: (resumeId: number, data: UpdateResumeRequest) => Promise<void>;
@@ -49,10 +49,10 @@ export const useResumeStore = create<ResumeState>((set) => ({
   formDirty: false,
   currentStep: 0,
 
-  fetchResumes: async (userId: number) => {
+  fetchResumes: async () => {
     set({ listLoading: true, error: null });
     try {
-      const resumes = await resumeApi.getList(userId);
+      const resumes = await resumeApi.getMyResumes();
       set({ resumes, listLoading: false });
     } catch (error) {
       set({ 
