@@ -5,6 +5,7 @@ import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 项目经历请求
@@ -61,7 +62,7 @@ public class ProjectRequest {
     /**
      * 技术栈（JSON数组字符串：["Java", "Spring Boot"]）
      */
-    private String techStack;
+    private List<String> techStack;
 
     /**
      * 项目规模

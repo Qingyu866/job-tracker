@@ -4,7 +4,7 @@ import com.jobtracker.context.UserContext;
 import com.jobtracker.common.result.Result;
 import com.jobtracker.dto.CreateResumeRequest;
 import com.jobtracker.dto.ResumeResponse;
-import com.jobtracker.entity.*;
+import com.jobtracker.entity.UserResume;
 import com.jobtracker.service.UserResumeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,10 +15,13 @@ import java.util.List;
 
 /**
  * 简历管理 API 控制器
+ * <p>
+ * 所有简历操作都使用"完整简历"接口，包含关联数据（技能、项目、工作经历）
+ * </p>
  *
  * @author Job Tracker Team
- * @version 1.0.0
- * @since 2026-03-16
+ * @version 2.0.0
+ * @since 2026-03-19
  */
 @Slf4j
 @RestController
@@ -29,25 +32,11 @@ public class ResumeController {
     private final UserResumeService resumeService;
 
     /**
-     * 创建简历
-     * POST /api/resumes
-     */
-    @PostMapping
-    public Result<UserResume> createResume(@RequestBody UserResume resume) {
-        // 从 Token 获取当前用户 ID
-        Long userId = UserContext.getCurrentUserId();
-        resume.setUserId(userId);
-
-        UserResume created = resumeService.create(resume);
-
-        log.info("创建简历成功: resumeId={}, userId={}", created.getResumeId(), userId);
-
-        return Result.success("简历创建成功", created);
-    }
-
-    /**
      * 创建完整简历（包含关联数据）
      * POST /api/resumes/complete
+     *
+     * @param request 完整简历请求（包含基本信息、技能、项目、工作经历）
+     * @return 完整简历响应
      */
     @PostMapping("/complete")
     public Result<ResumeResponse> createCompleteResume(@RequestBody @Valid CreateResumeRequest request) {
@@ -64,45 +53,45 @@ public class ResumeController {
     }
 
     /**
-     * 更新简历
-     * PUT /api/resumes/{resumeId}
+     * 更新完整简历（包含关联数据）
+     * PUT /api/resumes/{resumeId}/complete
+     *
+     * @param resumeId 简历ID
+     * @param request   完整简历请求（包含基本信息、技能、项目、工作经历）
+     * @return 完整简历响应
      */
-    @PutMapping("/{resumeId}")
-    public Result<String> updateResume(
+    @PutMapping("/{resumeId}/complete")
+    public Result<ResumeResponse> updateCompleteResume(
             @PathVariable Long resumeId,
-            @RequestBody UserResume resume
+            @RequestBody @Valid CreateResumeRequest request
     ) {
-        resume.setResumeId(resumeId);
-        resumeService.update(resume);
-        return Result.success("简历更新成功");
-    }
+        Long userId = UserContext.getCurrentUserId();
 
-    /**
-     * 删除简历
-     * DELETE /api/resumes/{resumeId}
-     */
-    @DeleteMapping("/{resumeId}")
-    public Result<String> deleteResume(@PathVariable Long resumeId) {
-        resumeService.delete(resumeId);
-        return Result.success("简历删除成功");
-    }
-
-    /**
-     * 获取简历详情
-     * GET /api/resumes/{resumeId}
-     */
-    @GetMapping("/{resumeId}")
-    public Result<UserResume> getResume(@PathVariable Long resumeId) {
-        UserResume resume = resumeService.getById(resumeId);
-        if (resume == null) {
+        // 验证简历所有权
+        UserResume existing = resumeService.getById(resumeId);
+        if (existing == null) {
             return Result.error("简历不存在");
         }
-        return Result.success(resume);
+        if (!existing.getUserId().equals(userId)) {
+            return Result.error("无权操作此简历");
+        }
+
+        // 更新完整简历
+        UserResume updated = resumeService.updateCompleteResume(resumeId, request);
+
+        // 构建完整响应
+        ResumeResponse response = buildResumeResponse(updated);
+
+        log.info("更新完整简历成功: resumeId={}, userId={}", updated.getResumeId(), userId);
+
+        return Result.success("简历更新成功", response);
     }
 
     /**
      * 获取当前用户的所有简历
      * GET /api/resumes/my
+     *
+     * @return 简历列表（不包含关联数据）
      */
     @GetMapping("/my")
     public Result<List<UserResume>> getMyResumes() {
@@ -114,88 +103,67 @@ public class ResumeController {
     /**
      * 获取当前用户的默认简历
      * GET /api/resumes/my/default
+     *
+     * @return 默认简历（完整，包含关联数据）
      */
     @GetMapping("/my/default")
-    public Result<UserResume> getMyDefaultResume() {
+    public Result<ResumeResponse> getMyDefaultResume() {
         Long userId = UserContext.getCurrentUserId();
         UserResume resume = resumeService.getDefaultResume(userId);
         if (resume == null) {
             return Result.error("未找到默认简历");
         }
-        return Result.success(resume);
+
+        ResumeResponse response = buildResumeResponse(resume);
+        return Result.success(response);
     }
 
     /**
      * 设置默认简历
      * PUT /api/resumes/{resumeId}/default
+     *
+     * @param resumeId 简历ID
+     * @return 操作结果
      */
     @PutMapping("/{resumeId}/default")
     public Result<String> setDefaultResume(@PathVariable Long resumeId) {
         Long userId = UserContext.getCurrentUserId();
+
+        // 验证简历所有权
+        UserResume existing = resumeService.getById(resumeId);
+        if (existing == null) {
+            return Result.error("简历不存在");
+        }
+        if (!existing.getUserId().equals(userId)) {
+            return Result.error("无权操作此简历");
+        }
+
         resumeService.setDefaultResume(userId, resumeId);
         return Result.success("默认简历设置成功");
     }
 
     /**
-     * 获取用户的所有简历（已废弃，请使用 /my）
-     * GET /api/resumes/user/{userId}
-     * @deprecated 请使用 /my
-     */
-    @Deprecated(since = "2026-03-17", forRemoval = true)
-    @GetMapping("/user/{userId}")
-    public Result<List<UserResume>> getUserResumes(@PathVariable Long userId) {
-        List<UserResume> resumes = resumeService.getByUserId(userId);
-        return Result.success(resumes);
-    }
-
-    /**
-     * 获取用户的默认简历（已废弃，请使用 /my/default）
-     * GET /api/resumes/user/{userId}/default
-     * @deprecated 请使用 /my/default
-     */
-    @Deprecated(since = "2026-03-17", forRemoval = true)
-    @GetMapping("/user/{userId}/default")
-    public Result<UserResume> getDefaultResume(@PathVariable Long userId) {
-        UserResume resume = resumeService.getDefaultResume(userId);
-        if (resume == null) {
-            return Result.error("未找到默认简历");
-        }
-        return Result.success(resume);
-    }
-
-    /**
-     * 获取简历的项目经历
-     * GET /api/resumes/{resumeId}/projects
-     */
-    @GetMapping("/{resumeId}/projects")
-    public Result<List<ResumeProject>> getProjects(@PathVariable Long resumeId) {
-        List<ResumeProject> projects = resumeService.getProjects(resumeId);
-        return Result.success(projects);
-    }
-
-    /**
-     * 获取简历的技能
-     * GET /api/resumes/{resumeId}/skills
-     */
-    @GetMapping("/{resumeId}/skills")
-    public Result<List<ResumeSkill>> getSkills(@PathVariable Long resumeId) {
-        List<ResumeSkill> skills = resumeService.getSkills(resumeId);
-        return Result.success(skills);
-    }
-
-    /**
      * 获取完整简历详情（包含关联数据）
      * GET /api/resumes/{resumeId}/complete
+     *
+     * @param resumeId 简历ID
+     * @return 完整简历响应
      */
     @GetMapping("/{resumeId}/complete")
     public Result<ResumeResponse> getCompleteResume(@PathVariable Long resumeId) {
+        Long userId = UserContext.getCurrentUserId();
+
         UserResume resume = resumeService.getById(resumeId);
         if (resume == null) {
             return Result.error("简历不存在");
         }
 
-        ResumeResponse response = buildResumeResponse(resume);
+        // 验证所有权
+        if (!resume.getUserId().equals(userId)) {
+            return Result.error("无权查看此简历");
+        }
 
+        ResumeResponse response = buildResumeResponse(resume);
         return Result.success(response);
     }
 
@@ -203,9 +171,12 @@ public class ResumeController {
      * 构建完整简历响应
      */
     private ResumeResponse buildResumeResponse(UserResume resume) {
-        List<ResumeWorkExperience> workExperiences = resumeService.getWorkExperiences(resume.getResumeId());
-        List<ResumeProject> projects = resumeService.getProjects(resume.getResumeId());
-        List<ResumeSkill> skills = resumeService.getSkills(resume.getResumeId());
+        List<com.jobtracker.entity.ResumeWorkExperience> workExperiences =
+                resumeService.getWorkExperiences(resume.getResumeId());
+        List<com.jobtracker.entity.ResumeProject> projects =
+                resumeService.getProjects(resume.getResumeId());
+        List<com.jobtracker.entity.ResumeSkill> skills =
+                resumeService.getSkills(resume.getResumeId());
 
         return ResumeResponse.builder()
                 .resumeId(resume.getResumeId())

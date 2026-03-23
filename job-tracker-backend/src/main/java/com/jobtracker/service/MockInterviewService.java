@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.jobtracker.agent.InterviewAgentFactory;
 import com.jobtracker.agent.interview.SkillGeneratorAgent;
+import com.jobtracker.agent.interview.dto.QuestionPlanListResponse;
+import com.jobtracker.agent.interview.dto.SkillTagListResponse;
+import com.jobtracker.config.MockInterviewConfig;
 import com.jobtracker.dto.QuestionPlanDTO;
 import com.jobtracker.entity.*;
 import com.jobtracker.mapper.*;
@@ -46,9 +49,13 @@ public class MockInterviewService {
     // 新增：智能解析服务
     private final ResumeParsingService resumeParsingService;
     private final JDParsingService jdParsingService;
+    private final EvaluationService evaluationService;
 
     // Agent 工厂
     private final InterviewAgentFactory agentFactory;
+
+    // 配置
+    private final MockInterviewConfig mockInterviewConfig;
 
     // ==================== 面试会话操作 ====================
 
@@ -87,6 +94,7 @@ public class MockInterviewService {
         // 4. 生成 JD 快照（⚠️ 重要：包含技能要求等完整信息）
         String jdSnapshot = generateJdSnapshot(applicationId);
         if (jdSnapshot == null || isEmptySnapshot(jdSnapshot)) {
+            System.out.println("");
             log.warn("JD 快照为空，尝试使用 AI 解析，申请ID: {}", applicationId);
             jdSnapshot = generateJdSnapshotWithAI(applicationId);
         }
@@ -107,7 +115,7 @@ public class MockInterviewService {
                 .jdSnapshot(jdSnapshot)           // ⚠️ 设置 JD 快照
                 .state(MockInterviewSession.InterviewState.INIT.name())
                 .currentRound(0)
-                .totalRounds(25)
+                .totalRounds(mockInterviewConfig.getTotalRounds())  // ⭐ 从配置读取
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -878,11 +886,33 @@ public class MockInterviewService {
         log.info("检测到 {} 个缺失的技能，使用 AI 生成：{}", missingSkills.size(), missingSkills);
 
         try {
-            // LangChain4j 会自动将 AI 返回的 JSON 解析为 List<SkillTag>
-            List<SkillTag> newSkills = skillGeneratorAgent.generateSkillTags(missingSkills);
+            // 将 List<String> 转换为 JSON 字符串传递给 AI
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String skillsJson = mapper.writeValueAsString(missingSkills);
+
+            // LangChain4j 会自动将 AI 返回的 JSON 解析为 SkillTagListResponse
+            SkillTagListResponse response = skillGeneratorAgent.generateSkillTags(skillsJson);
+            List<SkillTag> newSkills = response != null ? response.getSkillTags() : null;
 
             // 6. 批量插入新技能
             for (SkillTag skill : newSkills) {
+                // ⭐ 清除 AI 生成的假 ID，让数据库自动生成（雪花算法）
+                skill.setSkillId(null);
+
+                // ⭐ 设置默认值（AI 没有生成的字段）
+                if (skill.getParentId() == null) {
+                    skill.setParentId(0L);  // 顶级技能
+                }
+                if (skill.getHotScore() == null) {
+                    skill.setHotScore(1);  // 默认热度
+                }
+                if (skill.getCreatedAt() == null) {
+                    skill.setCreatedAt(LocalDateTime.now());
+                }
+                if (skill.getUpdatedAt() == null) {
+                    skill.setUpdatedAt(LocalDateTime.now());
+                }
+
                 skillTagMapper.insert(skill);
                 skillMap.put(skill.getSkillName(), skill.getSkillId());
                 log.info("创建新技能：{} (ID: {})", skill.getSkillName(), skill.getSkillId());
@@ -1107,7 +1137,7 @@ public class MockInterviewService {
     /**
      * 生成并保存问题计划
      * <p>
-     * 在会话创建时调用，生成完整的 25 轮问题计划并保存到数据库
+     * 在会话创建时调用，生成完整的问题计划（轮数由配置文件决定）并保存到数据库
      * </p>
      *
      * @param sessionId 会话ID
@@ -1124,38 +1154,55 @@ public class MockInterviewService {
         // 2. 获取 Agent
         InterviewAgentFactory.InterviewAgents agents = agentFactory.getAgents(sessionId);
         if (agents == null) {
-            throw new IllegalStateException("Agent 未初始化: " + sessionId);
+
         }
 
         // 3. 构建计划生成上下文
-        String context = buildPlanGenerationContext(session);
+        String context = buildPlanGenerationContext(session, mockInterviewConfig.getTotalRounds());
 
         // 4. 调用 ViceInterviewer 生成计划（LangChain4j 自动反序列化）
-        List<QuestionPlanDTO> plans = agents.viceInterviewer().generateQuestionPlan(context);
+        QuestionPlanListResponse response = agents.viceInterviewer().generateQuestionPlan(
+                context,                          // @UserMessage
+                agents.basicContext(),             // @V("context")
+                agents.resumeSnapshot(),           // @V("resume_snapshot")
+                agents.jdSnapshot(),               // @V("jd_snapshot")
+                mockInterviewConfig.getTotalRounds()  // @V("total_rounds")
+        );
+        List<QuestionPlanDTO> plans = response != null ? response.getPlans() : null;
 
         if (plans == null || plans.isEmpty()) {
             log.warn("生成问题计划失败，会话ID: {}", sessionId);
             return 0;
         }
 
-        // 5. 保存计划到数据库
-        int savedCount = 0;
-        for (QuestionPlanDTO plan : plans) {
-            MockInterviewEvaluation evaluation = MockInterviewEvaluation.builder()
-                    .sessionId(sessionId)
-                    .roundNumber(plan.getRoundNumber())
-                    .planStatus("PENDING")
-                    .skillName(plan.getSkillName())
-                    .topicSource(plan.getTopicSource())
-                    .questionType(plan.getQuestionType())
-                    .plannedDifficulty(plan.getDifficulty())
-                    .contextInfo(plan.getContextInfo())
-                    .reason(plan.getReason())
-                    .build();
+        // 4.5. 提取所有技能名称并确保数据库中存在这些技能 ⭐
+        List<String> skillNames = plans.stream()
+                .map(QuestionPlanDTO::getSkillName)
+                .distinct()
+                .collect(Collectors.toList());
 
-            evaluationMapper.insert(evaluation);
-            savedCount++;
-        }
+        log.info("考察计划包含 {} 个技能，确保数据库中存在：{}", skillNames.size(), skillNames);
+        Map<String, Long> skillIdMap = ensureSkillsExist(skillNames, agents.skillGenerator());
+
+        // 5. 批量保存计划到数据库（使用 skillId 填充 skill_id 字段）
+        List<MockInterviewEvaluation> evaluations = plans.stream()
+                .map(plan -> MockInterviewEvaluation.builder()
+                        .sessionId(sessionId)
+                        .roundNumber(plan.getRoundNumber())
+                        .planStatus("PENDING")
+                        .skillName(plan.getSkillName())
+                        .skillId(skillIdMap.get(plan.getSkillName()))  // ⭐ 设置技能ID
+                        .topicSource(plan.getTopicSource())
+                        .questionType(plan.getQuestionType())
+                        .plannedDifficulty(plan.getDifficulty())
+                        .contextInfo(plan.getContextInfo())
+                        .reason(plan.getReason())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 使用真正的批量插入（一次性提交到数据库）
+        evaluationService.batchInsert(evaluations);
+        int savedCount = evaluations.size();
 
         // 6. 更新会话的总计划数
         session.setTotalPlans(savedCount);
@@ -1253,35 +1300,44 @@ public class MockInterviewService {
     }
 
     /**
-     * 构建计划生成上下文
+     * 构建计划生成上下文（优化版）
+     * <p>
+     * 注意：简历信息和岗位要求已在系统提示词中提供，无需重复传递
+     * </p>
      */
-    private String buildPlanGenerationContext(MockInterviewSession session) {
+    private String buildPlanGenerationContext(MockInterviewSession session, int totalRounds) {
+        int easyRounds = (int) (totalRounds * 0.2);
+        int mediumRounds = (int) (totalRounds * 0.6);
+        int hardRounds = totalRounds - easyRounds - mediumRounds;
+
         return String.format("""
                 # 任务
-                请为以下面试会话生成完整的 25 轮问题计划。
+                请为以下面试会话生成完整的 %d 轮问题计划。
 
                 # 面试信息
                 - 岗位: %s
                 - 级别: %s
-                - 轮次: 25
+                - 轮次: %d
 
-                # 简历信息
-                %s
-
-                # 岗位要求
-                %s
+                # 注意事项
+                - 简历信息和岗位要求已在系统提示词中提供
+                - 请基于系统提示词中的信息生成问题计划
+                - 确保覆盖简历中的核心技能和JD中的要求技能
 
                 # 要求
-                1. 每轮包含 1-3 个问题（序列号 1-3）
+                1. 每轮只包含一个独立问题
                 2. 覆盖简历中的所有核心技能
                 3. 覆盖 JD 中的所有要求技能
-                4. 难度递进（前 5 轮简单，中间 15 轮中等，最后 5 轮困难）
+                4. 难度递进（前 %d 轮简单，中间 %d 轮中等，最后 %d 轮困难）
                 5. 包含开放性问题、技术问题、情景问题
                 """,
+                totalRounds,
                 session.getJobTitle(),
                 session.getSeniorityLevel(),
-                session.getResumeSnapshot() != null ? session.getResumeSnapshot() : "无",
-                session.getJdSnapshot() != null ? session.getJdSnapshot() : "无"
+                totalRounds,
+                easyRounds,
+                mediumRounds,
+                hardRounds
         );
     }
 }

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResumeStore } from '@/store/resumeStore';
-import { useUserStore } from '@/store/userStore';
 import { ResumeCard } from '@/components/resume/ResumeCard';
 import { Button, Spinner } from '@/components/common';
 import { Header } from '@/components/layout/Header';
@@ -12,7 +11,6 @@ type FilterType = 'all' | 'default';
 
 export function ResumeListPage() {
   const navigate = useNavigate();
-  const { userInfo } = useUserStore();
   const {
     resumes,
     listLoading,
@@ -105,8 +103,7 @@ export function ResumeListPage() {
       currentPosition: resume.currentPosition,
       summary: resume.summary,
       skills: resume.skills,
-      education: resume.education,
-      experience: resume.experience,
+      workExperiences: resume.workExperiences,
       projects: resume.projects,
       isDefault: resume.isDefault,
       createdAt: resume.createdAt,

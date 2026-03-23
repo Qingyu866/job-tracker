@@ -1,5 +1,6 @@
 package com.jobtracker.service;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jobtracker.dto.*;
 import com.jobtracker.entity.ResumeProject;
@@ -105,6 +106,89 @@ public class UserResumeService {
     }
 
     /**
+     * 更新完整简历（包含关联数据）
+     * <p>
+     * 删除原有关联数据，重新创建新的关联数据
+     * </p>
+     *
+     * @param resumeId 简历ID
+     * @param request  完整简历请求
+     * @return 更新后的完整简历
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public UserResume updateCompleteResume(Long resumeId, CreateResumeRequest request) {
+        // 1. 删除原有的关联数据
+        workExperienceMapper.delete(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ResumeWorkExperience>()
+                        .eq(ResumeWorkExperience::getResumeId, resumeId)
+        );
+        projectMapper.delete(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ResumeProject>()
+                        .eq(ResumeProject::getResumeId, resumeId)
+        );
+        skillMapper.delete(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ResumeSkill>()
+                        .eq(ResumeSkill::getResumeId, resumeId)
+        );
+        log.info("删除原有关联数据：resumeId={}", resumeId);
+
+        // 2. 更新主表记录
+        UserResume resume = buildMainResumeForUpdate(resumeId, request);
+        resumeMapper.updateById(resume);
+
+        // 3. 批量创建工作经历
+        if (request.getWorkExperiences() != null && !request.getWorkExperiences().isEmpty()) {
+            List<ResumeWorkExperience> experiences = request.getWorkExperiences().stream()
+                    .map(req -> buildWorkExperience(resumeId, req))
+                    .toList();
+            workExperienceMapper.insertBatch(experiences);
+            log.info("批量创建 {} 条工作经历", experiences.size());
+        }
+
+        // 4. 批量创建项目经历
+        if (request.getProjects() != null && !request.getProjects().isEmpty()) {
+            List<ResumeProject> projects = request.getProjects().stream()
+                    .map(req -> buildProject(resumeId, req))
+                    .toList();
+            projectMapper.insertBatch(projects);
+            log.info("批量创建 {} 个项目", projects.size());
+        }
+
+        // 5. 批量创建技能
+        if (request.getSkills() != null && !request.getSkills().isEmpty()) {
+            List<ResumeSkill> skills = request.getSkills().stream()
+                    .map(req -> buildSkill(resumeId, req))
+                    .toList();
+            skillMapper.insertBatch(skills);
+            log.info("批量创建 {} 项技能", skills.size());
+        }
+
+        // 6. 处理默认简历逻辑
+        if (Boolean.TRUE.equals(request.getIsDefault())) {
+            setDefaultResume(resume.getUserId(), resumeId);
+        }
+
+        log.info("完整简历更新成功：resumeId={}", resumeId);
+
+        return resume;
+    }
+
+    /**
+     * 构建主表记录（用于更新）
+     */
+    private UserResume buildMainResumeForUpdate(Long resumeId, CreateResumeRequest request) {
+        return UserResume.builder()
+                .resumeId(resumeId)
+                .resumeName(request.getResumeName())
+                .isDefault(request.getIsDefault())
+                .workYears(request.getWorkYears())
+                .currentPosition(request.getCurrentPosition())
+                .targetLevel(request.getTargetLevel())
+                .summary(request.getSummary())
+                .build();
+    }
+
+    /**
      * 构建主表记录
      */
     private UserResume buildMainResume(Long userId, CreateResumeRequest request) {
@@ -149,7 +233,7 @@ public class UserResumeService {
                 .description(request.getDescription())
                 .responsibilities(request.getResponsibilities())
                 .achievements(request.getAchievements())
-                .techStack(request.getTechStack())
+                .techStack(JSONUtil.toJsonStr(request.getTechStack()))
                 .projectScale(request.getProjectScale())
                 .performanceMetrics(request.getPerformanceMetrics())
                 .displayOrder(request.getDisplayOrder())

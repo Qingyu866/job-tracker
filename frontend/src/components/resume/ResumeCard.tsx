@@ -18,7 +18,7 @@ export function ResumeCard({
   onDelete,
   onSetDefault,
 }: ResumeCardProps) {
-  const skillNames = resume.skills?.map(s => s.name) || [];
+  const skillCount = resume.skills?.length || 0;
 
   return (
     <div
@@ -64,21 +64,11 @@ export function ResumeCard({
           )}
         </div>
 
-        {skillNames.length > 0 && (
+        {skillCount > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {skillNames.slice(0, 4).map((skill, index) => (
-              <span
-                key={index}
-                className="px-2 py-0.5 text-xs bg-paper-100 text-paper-600 rounded-full"
-              >
-                {skill}
-              </span>
-            ))}
-            {skillNames.length > 4 && (
-              <span className="px-2 py-0.5 text-xs bg-paper-100 text-paper-500 rounded-full">
-                +{skillNames.length - 4}
-              </span>
-            )}
+            <span className="px-2 py-0.5 text-xs bg-paper-100 text-paper-600 rounded-full">
+              {skillCount} 项技能
+            </span>
           </div>
         )}
 

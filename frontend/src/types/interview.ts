@@ -115,18 +115,6 @@ export interface InterviewReport {
   createdAt: string;
 }
 
-export interface UserResume {
-  id: number;
-  userId: number;
-  resumeName: string;
-  workYears?: number;
-  currentPosition?: string;
-  skills?: string[];
-  isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface ResumeProject {
   id: number;
   resumeId: number;

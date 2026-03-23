@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { resumeApi } from '@/services/interviewApi';
+import { resumeApi } from '@/services/resumeApi';
 import { toast } from '@/store/toastStore';
 import type { UserResume } from '@/types/resume';
 
@@ -34,7 +34,7 @@ export function CreateResumeForm({ onSuccess, onCancel, initialName = '' }: Crea
         return;
       }
 
-      const resume = await resumeApi.createResume({
+      const resume = await resumeApi.create({
         resumeName: formData.resumeName,
         workYears: formData.workYears,
         currentPosition: formData.currentPosition,

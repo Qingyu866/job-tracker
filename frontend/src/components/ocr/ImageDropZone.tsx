@@ -3,12 +3,10 @@ import { clsx } from 'clsx';
 import { Upload, FileText, AlertCircle } from 'lucide-react';
 import { Spinner } from '@/components/common';
 import { validateImageFile, validateImageDimensions } from '@/services/ocrApi';
-import type { OcrImageType } from '@/types/ocr';
 
 export interface ImageDropZoneProps {
   accept?: string;
   onUpload: (file: File) => void;
-  ocrMode?: OcrImageType;
   maxSize?: number;
   disabled?: boolean;
   className?: string;
@@ -18,7 +16,6 @@ export interface ImageDropZoneProps {
 export function ImageDropZone({
   accept = 'image/jpeg,image/png,image/jpg,application/pdf',
   onUpload,
-  ocrMode = 'general',
   maxSize = 10 * 1024 * 1024,
   disabled = false,
   className,

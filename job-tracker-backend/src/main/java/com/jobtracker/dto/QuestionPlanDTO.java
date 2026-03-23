@@ -23,14 +23,9 @@ import lombok.NoArgsConstructor;
 public class QuestionPlanDTO {
 
     /**
-     * 轮次（1-25）
+     * 轮次（从1开始，最大值由配置文件决定）
      */
     private Integer roundNumber;
-
-    /**
-     * 该轮的序号（从1开始，支持一轮多个问题）
-     */
-    private Integer sequenceNumber;
 
     /**
      * 要考察的技能名称

@@ -82,7 +82,7 @@ public class OcrController {
      * 上传并识别简历
      * POST /api/ocr/resume
      *
-     * @param file 简历图片文件
+     * @param file 简历文件（支持PDF、DOCX、图片等）
      * @return 解析后的简历信息
      */
     @PostMapping("/resume")
@@ -97,12 +97,13 @@ public class OcrController {
                 return Result.error("文件大小不能超过 10MB");
             }
 
-            byte[] imageData = file.getBytes();
+            log.info("开始识别简历，文件名: {}, 文件大小: {} bytes", file.getOriginalFilename(), file.getSize());
 
-            // 使用简历优化选项识别
-            OcrResult result = ocrService.recognize(imageData, OcrOptions.forResume());
+            // 直接使用 MultipartFile 识别（支持PDF、DOCX、图片等）
+            OcrResult result = ocrService.recognize(file, OcrOptions.forResume());
 
             if (!result.isSuccess()) {
+                log.error("简历识别失败: {}", result.getErrorMessage());
                 return Result.error("识别失败: " + result.getErrorMessage());
             }
 
@@ -119,9 +120,9 @@ public class OcrController {
 
             return Result.success(response);
 
-        } catch (IOException e) {
-            log.error("文件读取失败", e);
-            return Result.error("文件读取失败");
+        } catch (Exception e) {
+            log.error("简历识别异常", e);
+            return Result.error("识别失败: " + e.getMessage());
         }
     }
 
@@ -129,7 +130,7 @@ public class OcrController {
      * 上传并识别 JD
      * POST /api/ocr/jd
      *
-     * @param file          JD 图片文件
+     * @param file          JD 文件（支持PDF、DOCX、图片等）
      * @param applicationId 关联的申请ID（可选）
      * @return 识别结果
      */
@@ -143,12 +144,13 @@ public class OcrController {
                 return Result.error("文件不能为空");
             }
 
-            byte[] imageData = file.getBytes();
+            log.info("开始识别JD，文件名: {}, 文件大小: {} bytes", file.getOriginalFilename(), file.getSize());
 
-            // 使用 JD 优化选项识别
-            OcrResult result = ocrService.recognize(imageData, OcrOptions.forJD());
+            // 直接使用 MultipartFile 识别（支持PDF、DOCX、图片等）
+            OcrResult result = ocrService.recognize(file, OcrOptions.forJD());
 
             if (!result.isSuccess()) {
+                log.error("JD识别失败: {}", result.getErrorMessage());
                 return Result.error("识别失败: " + result.getErrorMessage());
             }
 
@@ -163,9 +165,9 @@ public class OcrController {
 
             return Result.success(response);
 
-        } catch (IOException e) {
-            log.error("文件读取失败", e);
-            return Result.error("文件读取失败");
+        } catch (Exception e) {
+            log.error("JD识别异常", e);
+            return Result.error("识别失败: " + e.getMessage());
         }
     }
 

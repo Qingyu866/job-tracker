@@ -83,6 +83,13 @@
             <version>4.12.0</version>
         </dependency>
 
+        <!-- 智谱AI官方SDK (用于OCR) -->
+        <dependency>
+            <groupId>ai.z.openapi</groupId>
+            <artifactId>zai-sdk</artifactId>
+            <version>0.3.3</version>
+        </dependency>
+
         <!-- Database -->
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -135,6 +142,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- pom.xml -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.26</version>  <!-- 建议使用最新版 -->
         </dependency>
     </dependencies>
 

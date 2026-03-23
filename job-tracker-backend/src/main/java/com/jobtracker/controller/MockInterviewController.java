@@ -5,6 +5,8 @@ import com.jobtracker.context.UserContext;
 import com.jobtracker.common.result.Result;
 import com.jobtracker.entity.*;
 import com.jobtracker.agent.*;
+import com.jobtracker.agent.interview.dto.ImprovementSuggestionListResponse;
+import com.jobtracker.agent.interview.dto.SkillCredibilityListResponse;
 import com.jobtracker.mapper.ApplicationMapper;
 import com.jobtracker.service.*;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +59,7 @@ public class MockInterviewController {
         // 开始面试
         interviewService.startInterview(session.getSessionId());
 
-        // 生成并保存问题计划（25 轮）
+        // 生成并保存问题计划（轮数由配置文件决定）
         try {
             int planCount = interviewService.generateAndSaveQuestionPlans(session.getSessionId());
             log.info("生成问题计划成功: sessionId={}, planCount={}", session.getSessionId(), planCount);
@@ -150,12 +152,16 @@ public class MockInterviewController {
 
                 // 调用评审专家评估
                 com.jobtracker.agent.interview.dto.EvaluationResult evaluationResult =
-                        agents.evaluator().evaluate(evaluationContext);
+                        agents.evaluator().evaluate(
+                                evaluationContext,              // @UserMessage
+                                agents.basicContext(),          // @V("context")
+                                agents.resumeSnapshot(),        // @V("resume_snapshot")
+                                agents.jdSnapshot()             // @V("jd_snapshot")
+                        );
 
                 // 从 EvaluationResult 对象创建评分记录
                 MockInterviewEvaluation evaluation = createEvaluationFromResult(
-                        sessionId,
-                        session.getCurrentRound(),
+                        session,
                         lastQuestion.getContent(),
                         request.getContent(),
                         evaluationResult
@@ -171,10 +177,6 @@ public class MockInterviewController {
                 } catch (Exception e) {
                     log.warn("持久化 Agent 记忆失败，会话: {}, 轮次: {}", sessionId, session.getCurrentRound(), e);
                 }
-
-                // 更新上一轮的计划状态为 COMPLETED
-                // 找到上一轮对应的评估记录并更新状态
-                evaluationService.updateEvaluationPlanStatus(sessionId, session.getCurrentRound(), "COMPLETED");
 
             } catch (Exception e) {
                 log.warn("评估回答失败，跳过本轮评分，会话: {}, 轮次: {}",
@@ -201,7 +203,14 @@ public class MockInterviewController {
 
         // ===== 根据计划生成问题 =====
         String questionContext = buildQuestionContextFromPlan(session, nextPlan);
-        String question = agents.mainInterviewer().askQuestion(questionContext);
+        String question = agents.mainInterviewer().askQuestion(
+                questionContext,                  // @UserMessage
+                java.time.LocalDate.now().toString(),  // @V("current_date")
+                java.time.LocalTime.now().toString(),  // @V("current_time")
+                agents.basicContext(),            // @V("context")
+                agents.resumeSnapshot(),          // @V("resume_snapshot")
+                agents.jdSnapshot()               // @V("jd_snapshot")
+        );
 
         // 保存面试官问题
         InterviewMessage aiMessage = messageService.addQuestion(
@@ -240,45 +249,75 @@ public class MockInterviewController {
             return Result.error("会话不存在");
         }
 
-        // 2. 获取 Agent 组
+        // 2. 删除所有待执行的计划（PENDING 状态）
+        int deletedCount = evaluationService.deletePendingPlans(sessionId);
+        log.info("清理待执行计划完成，会话ID: {}, 删除数量: {}", sessionId, deletedCount);
+
+        // 3. 获取 Agent 组
         InterviewAgentFactory.InterviewAgents agents = agentFactory.getAgents(sessionId);
         if (agents == null) {
             log.warn("Agent 未初始化，使用简化报告生成，会话ID: {}", sessionId);
             return finishInterviewSimple(session, sessionId);
         }
 
-        // 3. 获取所有评分记录（用于构建上下文）
+        // 4. 获取所有评分记录（用于构建上下文）
         List<MockInterviewEvaluation> evaluations = evaluationService.getSessionEvaluations(sessionId);
 
         // 4. 构建完整报告生成上下文
         String reportContext = buildReportContext(session, evaluations);
 
         try {
-            // 5. 调用评审专家生成可信度分析（现在返回 List<SkillCredibility>）
+            // 5. 调用评审专家生成可信度分析
+            SkillCredibilityListResponse credibilityResponse =
+                    agents.evaluator().generateCredibilityAnalysis(
+                            reportContext,               // @UserMessage
+                            agents.basicContext(),       // @V("context")
+                            agents.resumeSnapshot(),     // @V("resume_snapshot")
+                            agents.jdSnapshot()          // @V("jd_snapshot")
+                    );
             List<com.jobtracker.agent.interview.dto.SkillCredibility> credibilityList =
-                    agents.evaluator().generateCredibilityAnalysis(reportContext);
+                    credibilityResponse != null ? credibilityResponse.getCredibilities() : null;
 
             // 序列化为 JSON 字符串存储
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             String credibilityAnalysisJson = mapper.writeValueAsString(credibilityList);
             session.setResumeGapAnalysis(credibilityAnalysisJson);
 
-            // 6. 计算总体可信度评分（现在返回 CredibilityScoreResult 对象）
+            // 6. 计算总体可信度评分
             com.jobtracker.agent.interview.dto.CredibilityScoreResult credibilityScoreResult =
-                    agents.evaluator().calculateCredibilityScore(reportContext);
+                    agents.evaluator().calculateCredibilityScore(
+                            reportContext,               // @UserMessage
+                            agents.basicContext(),       // @V("context")
+                            agents.resumeSnapshot(),     // @V("resume_snapshot")
+                            agents.jdSnapshot()          // @V("jd_snapshot")
+                    );
             Double credibilityScore = credibilityScoreResult.getCredibilityScore();
             session.setResumeCredibilityScore(BigDecimal.valueOf(credibilityScore));
 
-            // 7. 调用副面试官生成改进建议（现在返回 List<ImprovementSuggestion>）
+            // 7. 调用副面试官生成改进建议
+            ImprovementSuggestionListResponse suggestionsResponse =
+                    agents.viceInterviewer().generateSuggestions(
+                            reportContext,               // @UserMessage
+                            agents.basicContext(),       // @V("context")
+                            agents.resumeSnapshot(),     // @V("resume_snapshot")
+                            agents.jdSnapshot()          // @V("jd_snapshot")
+                    );
             List<com.jobtracker.agent.interview.dto.ImprovementSuggestion> suggestions =
-                    agents.viceInterviewer().generateSuggestions(reportContext);
+                    suggestionsResponse != null ? suggestionsResponse.getSuggestions() : null;
 
             // 序列化为 JSON 字符串存储
             String suggestionsJson = mapper.writeValueAsString(suggestions);
             session.setImprovementSuggestions(suggestionsJson);
 
             // 8. 调用主面试官生成面试总结
-            String summary = agents.mainInterviewer().generateSummary(reportContext);
+            String summary = agents.mainInterviewer().generateSummary(
+                    reportContext,                  // @UserMessage
+                    java.time.LocalDate.now().toString(),  // @V("current_date")
+                    java.time.LocalTime.now().toString(),  // @V("current_time")
+                    agents.basicContext(),          // @V("context")
+                    agents.resumeSnapshot(),        // @V("resume_snapshot")
+                    agents.jdSnapshot()             // @V("jd_snapshot")
+            );
             session.setFeedbackSummary(summary);
 
             // 9. 计算总体评分（基于所有 evaluation）
@@ -306,6 +345,10 @@ public class MockInterviewController {
      * 简化版面试结束（用于 Agent 不可用时）
      */
     private Result<MockInterviewSession> finishInterviewSimple(MockInterviewSession session, String sessionId) {
+        // 删除所有待执行的计划（PENDING 状态）
+        int deletedCount = evaluationService.deletePendingPlans(sessionId);
+        log.info("清理待执行计划完成（简化版），会话ID: {}, 删除数量: {}", sessionId, deletedCount);
+
         // 计算总体评分
         BigDecimal totalScore = evaluationService.calculateTotalScore(sessionId);
         session.setTotalScore(totalScore);
@@ -366,7 +409,10 @@ public class MockInterviewController {
     }
 
     /**
-     * 构建报告生成上下文
+     * 构建报告生成上下文（优化版）
+     * <p>
+     * 注意：简历信息和 JD 要求已在系统提示词中提供，无需重复传递
+     * </p>
      */
     private String buildReportContext(MockInterviewSession session, List<MockInterviewEvaluation> evaluations) {
         StringBuilder context = new StringBuilder();
@@ -388,19 +434,7 @@ public class MockInterviewController {
         context.append(String.format("- 面试轮次: %d\n", session.getCurrentRound()));
         context.append("\n");
 
-        // 简历快照
-        context.append("# 简历信息\n");
-        if (session.getResumeSnapshot() != null) {
-            context.append(session.getResumeSnapshot().toString());
-        }
-        context.append("\n");
-
-        // JD 要求
-        context.append("# 岗位要求\n");
-        if (session.getJdSnapshot() != null) {
-            context.append(session.getJdSnapshot().toString());
-        }
-        context.append("\n");
+        // 注意：简历快照和 JD 快照已在系统提示词中提供，无需重复传递
 
         // 已考察技能
         context.append("# 已考察技能\n");
@@ -461,12 +495,16 @@ public class MockInterviewController {
         // 评估回答（现在返回 EvaluationResult 对象）
         String context = buildEvaluationContext(session, request);
         com.jobtracker.agent.interview.dto.EvaluationResult evaluationResult =
-                agents.evaluator().evaluate(context);
+                agents.evaluator().evaluate(
+                        context,                      // @UserMessage
+                        agents.basicContext(),         // @V("context")
+                        agents.resumeSnapshot(),       // @V("resume_snapshot")
+                        agents.jdSnapshot()            // @V("jd_snapshot")
+                );
 
         // 从 EvaluationResult 对象创建评分记录
         MockInterviewEvaluation evaluation = createEvaluationFromResult(
-                sessionId,
-                request.getRoundNumber(),
+                session,
                 request.getQuestion(),
                 request.getAnswer(),
                 evaluationResult
@@ -522,53 +560,70 @@ public class MockInterviewController {
     }
 
     /**
-     * 构建提问上下文
+     * 构建提问上下文（优化版）
+     * <p>
+     * 注意：简历信息和JD要求已在系统提示词中提供，无需重复传递
+     * 此方法未使用，保留作为备用实现
+     * </p>
      */
     private String buildQuestionContext(
             MockInterviewSession session,
             com.jobtracker.agent.interview.dto.NextStepDecision nextStepDecision
     ) {
         return String.format("""
-                下一步决策: %s
-                选题来源: %s
-                选择原因: %s
-                难度等级: %d
+                # 下一步决策
+                - 选题: %s
+                - 选题来源: %s
+                - 选择原因: %s
+                - 难度等级: %d
 
-                岗位: %s
-                级别: %s
-                简历快照: %s
-                JD 快照: %s
+                # 面试信息
+                - 岗位: %s
+                - 级别: %s
+
+                # 注意事项
+                - 简历信息和 JD 要求已在系统提示词中提供
                 """,
                 nextStepDecision.getNextTopic(),
                 nextStepDecision.getTopicSource(),
                 nextStepDecision.getReason(),
                 nextStepDecision.getDifficulty(),
                 session.getJobTitle(),
-                session.getSeniorityLevel(),
-                session.getResumeSnapshot(),
-                session.getJdSnapshot()
+                session.getSeniorityLevel()
         );
     }
 
     /**
-     * 构建评估上下文
+     * 构建评估上下文（优化版）
+     * <p>
+     * 注意：简历信息和 JD 要求已在系统提示词中提供，无需重复传递
+     * </p>
      */
     private String buildEvaluationContext(MockInterviewSession session, EvaluationRequest request) {
         return String.format("""
-                问题: %s
-                用户回答: %s
-                简历快照: %s
-                JD 要求: %s
+                # 评估任务
+                请评估候选人的回答
+
+                # 问题
+                %s
+
+                # 用户回答
+                %s
+
+                # 注意事项
+                - 简历信息和 JD 要求已在系统提示词中提供
+                - 请基于系统提示词中的简历信息，评估回答的真实性
                 """,
                 request.getQuestion(),
-                request.getAnswer(),
-                session.getResumeSnapshot(),
-                session.getJdSnapshot()
+                request.getAnswer()
         );
     }
 
     /**
-     * 构建单轮评估上下文
+     * 构建单轮评估上下文（优化版）
+     * <p>
+     * 注意：简历信息和 JD 要求已在系统提示词中提供，无需重复传递
+     * </p>
      */
     private String buildEvaluationContextForRound(
             MockInterviewSession session,
@@ -586,24 +641,22 @@ public class MockInterviewController {
                 # 用户回答
                 %s
 
-                # 简历快照
-                %s
-
-                # JD 要求
-                %s
+                # 注意事项
+                - 简历信息和 JD 要求已在系统提示词中提供
+                - 请基于系统提示词中的简历信息，评估回答的真实性
+                - 关注回答与简历声称的匹配度
                 """,
                 roundNumber,
                 question,
-                userAnswer,
-                session.getResumeSnapshot() != null ? session.getResumeSnapshot() : "无",
-                session.getJdSnapshot() != null ? session.getJdSnapshot() : "无"
+                userAnswer
         );
     }
 
     /**
-     * 从计划构建提问上下文
+     * 从计划构建提问上下文（优化版）
      * <p>
      * 根据预生成的问题计划，构建主面试官生成问题的上下文
+     * 注意：简历信息已在系统提示词中提供，无需重复传递
      * </p>
      */
     private String buildQuestionContextFromPlan(
@@ -627,13 +680,11 @@ public class MockInterviewController {
                 - 级别: %s
                 - 当前轮次: %d
 
-                # 简历信息
-                %s
-
                 # 要求
                 1. 问题必须符合计划中的技能和难度要求
                 2. 问题类型要匹配（开放性问题/技术问题/情景问题）
                 3. 根据上下文信息调整问题细节
+                4. 简历信息已在系统提示词中提供，请结合简历中的项目经验生成问题
                 """,
                 plan.getSkillName() != null ? plan.getSkillName() : "通用",
                 plan.getTopicSource() != null ? plan.getTopicSource() : "UNKNOWN",
@@ -643,20 +694,18 @@ public class MockInterviewController {
                 plan.getReason() != null ? plan.getReason() : "无",
                 session.getJobTitle(),
                 session.getSeniorityLevel(),
-                session.getCurrentRound(),
-                session.getResumeSnapshot() != null ? session.getResumeSnapshot() : "无"
+                session.getCurrentRound()
         );
     }
 
     /**
      * 从 EvaluationResult 对象创建评分记录
      * <p>
-     * LangChain4j 会自动将 Agent 返回的 JSON 反序列化为 EvaluationResult 对象
+     * ⭐ 关键：根据 session.getCurrentPlanId() 更新对应的计划记录
      * </p>
      */
     private MockInterviewEvaluation createEvaluationFromResult(
-            String sessionId,
-            Integer roundNumber,
+            MockInterviewSession session,
             String question,
             String userAnswer,
             com.jobtracker.agent.interview.dto.EvaluationResult evaluationResult
@@ -664,11 +713,51 @@ public class MockInterviewController {
         try {
             com.jobtracker.agent.interview.dto.ScoreDetail scores = evaluationResult.getScores();
 
-            // 创建评分记录
+            // ⭐ 关键修改：根据 currentPlanId 查找并更新已存在的计划记录
+            Long currentPlanId = session.getCurrentPlanId();
+
+            if (currentPlanId != null) {
+                // 根据 planId 获取计划记录
+                MockInterviewEvaluation existingPlan = evaluationService.getEvaluationById(currentPlanId);
+
+                if (existingPlan != null) {
+                    // 更新已存在的计划记录
+                    existingPlan.setQuestionText(question);
+                    existingPlan.setUserAnswer(userAnswer);
+                    existingPlan.setTechnicalScore(BigDecimal.valueOf(
+                            scores != null ? scores.getTechnical() : 2.5));
+                    existingPlan.setLogicScore(BigDecimal.valueOf(
+                            scores != null ? scores.getLogic() : 2.5));
+                    existingPlan.setDepthScore(BigDecimal.valueOf(
+                            scores != null ? scores.getDepth() : 2.5));
+                    existingPlan.setTotalScore(BigDecimal.valueOf(
+                            evaluationResult.getTotalScore() != null ?
+                                    evaluationResult.getTotalScore() : 7.5));
+                    existingPlan.setFeedback(evaluationResult.getFeedback());
+                    existingPlan.setSuggestion(evaluationResult.getSuggestion());
+                    existingPlan.setPlanStatus("COMPLETED");  // 更新状态为已完成
+                    existingPlan.setEvaluatedAt(java.time.LocalDateTime.now());
+
+                    // 保存更新
+                    evaluationService.updateEvaluation(existingPlan);
+
+                    log.info("更新评分记录成功（计划记录）: sessionId={}, planId={}, skill={}, score={}",
+                            session.getSessionId(), currentPlanId, existingPlan.getSkillName(), existingPlan.getTotalScore());
+
+                    return existingPlan;
+                } else {
+                    log.warn("未找到 planId={} 的计划记录，会话: {}", currentPlanId, session.getSessionId());
+                }
+            }
+
+            // 如果找不到 currentPlanId（不应该发生），则创建新的评分记录
+            log.warn("未找到 currentPlanId，创建新的评分记录，会话: {}, round: {}",
+                    session.getSessionId(), session.getCurrentRound());
+
             MockInterviewEvaluation evaluation = MockInterviewEvaluation.builder()
-                    .sessionId(sessionId)
-                    .roundNumber(roundNumber)
-                    .skillId(0L)  // 0 表示通用技能，未分类
+                    .sessionId(session.getSessionId())
+                    .roundNumber(session.getCurrentRound())
+                    .skillId(0L)
                     .skillName("通用")
                     .questionText(question)
                     .userAnswer(userAnswer)
@@ -683,19 +772,21 @@ public class MockInterviewController {
                                     evaluationResult.getTotalScore() : 7.5))
                     .feedback(evaluationResult.getFeedback())
                     .suggestion(evaluationResult.getSuggestion())
+                    .planStatus("COMPLETED")
+                    .evaluatedAt(java.time.LocalDateTime.now())
                     .build();
 
             return evaluationService.createEvaluation(evaluation);
 
         } catch (Exception e) {
             log.warn("从 EvaluationResult 创建评分记录失败，使用默认值，会话: {}, 轮次: {}",
-                    sessionId, roundNumber, e);
+                    session.getSessionId(), session.getCurrentRound(), e);
 
             // 创建失败，使用默认值
             MockInterviewEvaluation evaluation = MockInterviewEvaluation.builder()
-                    .sessionId(sessionId)
-                    .roundNumber(roundNumber)
-                    .skillId(0L)  // 0 表示通用技能
+                    .sessionId(session.getSessionId())
+                    .roundNumber(session.getCurrentRound())
+                    .skillId(0L)
                     .skillName("通用")
                     .questionText(question)
                     .userAnswer(userAnswer)
@@ -704,6 +795,8 @@ public class MockInterviewController {
                     .depthScore(BigDecimal.valueOf(2.5))
                     .totalScore(BigDecimal.valueOf(7.5))
                     .feedback("评估结果处理失败")
+                    .planStatus("COMPLETED")
+                    .evaluatedAt(java.time.LocalDateTime.now())
                     .build();
 
             return evaluationService.createEvaluation(evaluation);

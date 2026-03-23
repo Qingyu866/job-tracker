@@ -4,6 +4,8 @@ import com.jobtracker.entity.MockInterviewEvaluation;
 import com.jobtracker.mapper.MockInterviewEvaluationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ import java.util.List;
 public class EvaluationService {
 
     private final MockInterviewEvaluationMapper evaluationMapper;
+    private final SqlSessionFactory sqlSessionFactory;
 
     /**
      * 创建评分记录
@@ -38,6 +41,36 @@ public class EvaluationService {
                 evaluation.getSkillName(),
                 evaluation.getTotalScore());
         return evaluation;
+    }
+
+    /**
+     * 批量插入评估记录
+     * <p>
+     * 使用 MyBatis 的批量模式，一次性插入多条记录，提升性能
+     * </p>
+     *
+     * @param evaluations 评估记录列表
+     */
+    @Transactional
+    public void batchInsert(List<MockInterviewEvaluation> evaluations) {
+        if (evaluations == null || evaluations.isEmpty()) {
+            return;
+        }
+
+        // 使用 SqlSession 的批量模式
+        try (SqlSession batchSession = sqlSessionFactory.openSession()) {
+            MockInterviewEvaluationMapper batchMapper = batchSession.getMapper(MockInterviewEvaluationMapper.class);
+
+            for (MockInterviewEvaluation evaluation : evaluations) {
+                batchMapper.insert(evaluation);
+            }
+
+            batchSession.commit();
+            log.info("批量插入评估记录成功，数量: {}", evaluations.size());
+        } catch (Exception e) {
+            log.error("批量插入评估记录失败", e);
+            throw new RuntimeException("批量插入评估记录失败", e);
+        }
     }
 
     /**
@@ -124,5 +157,56 @@ public class EvaluationService {
 
         log.debug("更新评估记录计划状态: sessionId={}, roundNumber={}, newStatus={}",
                 sessionId, roundNumber, newStatus);
+    }
+
+    /**
+     * 更新评估记录
+     * <p>
+     * 用于填充实际的评估数据（问题、回答、评分等）
+     * </p>
+     *
+     * @param evaluation 评估记录
+     */
+    @Transactional
+    public void updateEvaluation(MockInterviewEvaluation evaluation) {
+        evaluationMapper.updateById(evaluation);
+
+        log.info("更新评估记录: sessionId={}, round={}, skill={}, score={}",
+                evaluation.getSessionId(),
+                evaluation.getRoundNumber(),
+                evaluation.getSkillName(),
+                evaluation.getTotalScore());
+    }
+
+    /**
+     * 根据ID获取评估记录
+     *
+     * @param evaluationId 评估记录ID
+     * @return 评估记录
+     */
+    public MockInterviewEvaluation getEvaluationById(Long evaluationId) {
+        return evaluationMapper.selectById(evaluationId);
+    }
+
+    /**
+     * 删除所有待执行的计划（PENDING 状态）
+     * <p>
+     * 在面试结束时调用，清理未被使用的评分计划
+     * </p>
+     *
+     * @param sessionId 面试会话ID
+     * @return 删除的记录数
+     */
+    @Transactional
+    public int deletePendingPlans(String sessionId) {
+        int deletedCount = evaluationMapper.delete(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MockInterviewEvaluation>()
+                        .eq(MockInterviewEvaluation::getSessionId, sessionId)
+                        .eq(MockInterviewEvaluation::getPlanStatus, "PENDING")
+        );
+
+        log.info("删除待执行的计划: sessionId={}, deletedCount={}", sessionId, deletedCount);
+
+        return deletedCount;
     }
 }

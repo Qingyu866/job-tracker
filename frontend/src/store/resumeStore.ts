@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { resumeApi } from '@/services/resumeApi';
-import type { UserResume, CreateResumeRequest, UpdateResumeRequest } from '@/types/resume';
+import type { UserResume, CreateResumeRequest, UpdateResumeRequest, CreateCompleteResumeRequest } from '@/types/resume';
 
 interface ResumeState {
   resumes: UserResume[];
@@ -17,6 +17,12 @@ interface ResumeState {
   fetchResumes: () => Promise<void>;
   fetchResumeDetail: (resumeId: number) => Promise<void>;
   createResume: (data: CreateResumeRequest) => Promise<UserResume>;
+  createCompleteResume: (data: CreateCompleteResumeRequest) => Promise<{
+    resume: UserResume;
+    skills: any[];
+    projects: any[];
+    workExperiences: any[];
+  }>;
   updateResume: (resumeId: number, data: UpdateResumeRequest) => Promise<void>;
   deleteResume: (resumeId: number) => Promise<void>;
   setDefaultResume: (resumeId: number) => Promise<void>;
@@ -32,7 +38,7 @@ const initialFormData: Partial<CreateResumeRequest> = {
   currentPosition: '',
   summary: '',
   education: [],
-  experience: [],
+  workExperiences: [],
   projects: [],
   skills: [],
 };
@@ -65,7 +71,7 @@ export const useResumeStore = create<ResumeState>((set) => ({
   fetchResumeDetail: async (resumeId: number) => {
     set({ detailLoading: true, error: null });
     try {
-      const resume = await resumeApi.getDetail(resumeId);
+      const resume = await resumeApi.getCompleteResume(resumeId);
       set({ 
         currentResume: resume, 
         formData: resume,
@@ -94,6 +100,27 @@ export const useResumeStore = create<ResumeState>((set) => ({
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : '创建简历失败', 
+        saving: false 
+      });
+      throw error;
+    }
+  },
+
+  createCompleteResume: async (data: CreateCompleteResumeRequest) => {
+    set({ saving: true, error: null });
+    try {
+      const result = await resumeApi.createComplete(data);
+      set((state) => ({
+        resumes: [...state.resumes, result.resume],
+        saving: false,
+        formData: { ...initialFormData },
+        formDirty: false,
+        currentStep: 0,
+      }));
+      return result;
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : '创建完整简历失败', 
         saving: false 
       });
       throw error;

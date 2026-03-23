@@ -89,30 +89,31 @@ langchain4j:
   chat-memory:
     window-size: 20
 
+# Mock Interview Configuration
+mock-interview:
+  # 面试总轮数
+  total-rounds: 6
+  # 每轮最大问题数（1个问题 + 可能的追问）
+  max-questions-per-round: 1
+  # 是否启用追问功能
+  enable-followup: false
+
 # OCR Configuration
 ocr:
   # 启用 OCR 功能
   enabled: true
-
-  # 默认 OCR 提供商
-  default-provider: ZHIPU  # ZHIPU / LOCAL
-
-  # 智谱 OCR 配置
+  # 智谱文档解析配置
   zhipu:
-    api-url: https://open.bigmodel.cn/api/paas/v4/ocr
-    api-key: ${ZHIPU_API_KEY:}
-    timeout: 30000  # 30秒超时
-    max-retries: 1  # 失败重试次数
+    api-key: ${ZHIPU_API_KEY:03e1f729fdb04343bd04c3f14d0666de.emX3C5N7WX1XOvj4}  # 智谱AI API密钥（必填，从环境变量读取）
+    tool-type: lite              # 解析工具类型：lite(轻量级)/prime(标准)/expert(高级)
+    timeout: 300000              # 总超时时间（毫秒，默认5分钟）
+    poll-interval: 3000          # 轮询间隔（毫秒，默认3秒）
+    max-retries: 100             # 最大轮询次数（默认100次）
 
-  # 本地降级配置
-  fallback:
-    enable-local-model: true  # 启用本地模型降级
-    local-model-confidence: 0.6  # 本地模型最低置信度
-
-  # 图片限制
+  # 文件限制
   limits:
     max-image-size: 10485760  # 10MB
-    supported-formats: jpg,jpeg,png,pdf
+    supported-formats: pdf,docx,jpg,jpeg,png
 
 # Sa-Token Configuration
 sa-token:

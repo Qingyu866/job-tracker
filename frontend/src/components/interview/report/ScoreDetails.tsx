@@ -8,6 +8,8 @@ export interface ScoreDetailsProps {
 }
 
 export function ScoreDetails({ evaluations }: ScoreDetailsProps) {
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
   if (evaluations.length === 0) {
     return (
       <div className="text-center py-8 text-paper-400">
@@ -15,6 +17,10 @@ export function ScoreDetails({ evaluations }: ScoreDetailsProps) {
       </div>
     );
   }
+
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   return (
     <div className="space-y-4">
@@ -25,7 +31,13 @@ export function ScoreDetails({ evaluations }: ScoreDetailsProps) {
 
       <div className="space-y-3">
         {evaluations.map((evaluation, index) => (
-          <EvaluationCard key={evaluation.id} evaluation={evaluation} index={index + 1} />
+          <EvaluationCard 
+            key={evaluation.id} 
+            evaluation={evaluation} 
+            index={index + 1}
+            isExpanded={expandedId === evaluation.id}
+            onToggle={() => toggleExpand(evaluation.id)}
+          />
         ))}
       </div>
     </div>
@@ -35,18 +47,22 @@ export function ScoreDetails({ evaluations }: ScoreDetailsProps) {
 interface EvaluationCardProps {
   evaluation: MockInterviewEvaluation;
   index: number;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
-function EvaluationCard({ evaluation, index }: EvaluationCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  const totalScore = evaluation.technicalScore + evaluation.logicScore + evaluation.depthScore;
+function EvaluationCard({ evaluation, index, isExpanded, onToggle }: EvaluationCardProps) {
+  const technicalScore = evaluation.technicalScore ?? 0;
+  const logicScore = evaluation.logicScore ?? 0;
+  const depthScore = evaluation.depthScore ?? 0;
+  const totalScore = technicalScore + logicScore + depthScore;
   const maxScore = 4 + 3 + 3;
 
   return (
     <div className="border border-paper-200 rounded-lg overflow-hidden">
       <button
-        onClick={() => setExpanded(!expanded)}
+        type="button"
+        onClick={onToggle}
         className="w-full p-4 flex items-center justify-between bg-paper-50 hover:bg-paper-100 transition-colors"
       >
         <div className="flex items-center gap-3">
@@ -57,7 +73,7 @@ function EvaluationCard({ evaluation, index }: EvaluationCardProps) {
           <span className="text-paper-600 font-medium">
             {totalScore.toFixed(1)} / {maxScore}
           </span>
-          {expanded ? (
+          {isExpanded ? (
             <ChevronUp className="w-5 h-5 text-paper-400" />
           ) : (
             <ChevronDown className="w-5 h-5 text-paper-400" />
@@ -65,7 +81,7 @@ function EvaluationCard({ evaluation, index }: EvaluationCardProps) {
         </div>
       </button>
 
-      {expanded && (
+      {isExpanded && (
         <div className="p-4 space-y-4 border-t border-paper-200">
           {(evaluation.questionText || evaluation.userAnswer) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-paper-200">
@@ -95,9 +111,9 @@ function EvaluationCard({ evaluation, index }: EvaluationCardProps) {
           )}
 
           <div className="grid grid-cols-3 gap-4">
-            <ScoreItem label="技术能力" score={evaluation.technicalScore} max={4} />
-            <ScoreItem label="逻辑思维" score={evaluation.logicScore} max={3} />
-            <ScoreItem label="深度理解" score={evaluation.depthScore} max={3} />
+            <ScoreItem label="技术能力" score={technicalScore} max={4} />
+            <ScoreItem label="逻辑思维" score={logicScore} max={3} />
+            <ScoreItem label="深度理解" score={depthScore} max={3} />
           </div>
 
           <div className="space-y-2">

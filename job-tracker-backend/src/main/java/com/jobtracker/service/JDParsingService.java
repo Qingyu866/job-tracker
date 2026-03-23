@@ -1,5 +1,6 @@
 package com.jobtracker.service;
 
+import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
@@ -44,13 +45,12 @@ public class JDParsingService {
 
             // 清理可能的 Markdown 标记
             String cleanedResponse = cleanMarkdownCodeBlocks(aiResponse);
-
+            log.info("清理可能的 Markdown 标记后的内容：{}",cleanedResponse);
             // 解析 JSON 响应
-            JDParseResult result = objectMapper.readValue(
-                    cleanedResponse,
-                    JDParseResult.class
-            );
+            JDParseResult result  = JSONUtil.toBean(cleanedResponse,JDParseResult.class);
 
+            log.info("------------------------------");
+            log.info("JD 解析内容：{}",result);
             log.info("JD 解析成功：{} 个核心技能，{} 个加分技能",
                     result.getCoreSkills().size(),
                     result.getOptionalSkills().size());

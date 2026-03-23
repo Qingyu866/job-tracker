@@ -3,8 +3,10 @@ package com.jobtracker.agent.interview;
 import com.jobtracker.agent.interview.dto.EvaluationResult;
 import com.jobtracker.agent.interview.dto.SkillCredibility;
 import com.jobtracker.agent.interview.dto.CredibilityScoreResult;
-
-import java.util.List;
+import com.jobtracker.agent.interview.dto.SkillCredibilityListResponse;
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 评审专家 Agent
@@ -24,7 +26,13 @@ public interface ExpertEvaluatorAgent {
      * @param context 评估上下文（包含问题、回答、简历声称、JD要求等）
      * @return 评估结果对象（LangChain4j 会自动处理序列化）
      */
-    EvaluationResult evaluate(String context);
+    @SystemMessage(fromResource = "/prompts/system/interview/expert-evaluator.txt")
+    EvaluationResult evaluate(
+        @UserMessage String context,
+        @V("context") String basicContext,
+        @V("resume_snapshot") String resumeSnapshot,
+        @V("jd_snapshot") String jdSnapshot
+    );
 
     /**
      * 生成简历可信度分析报告
@@ -34,9 +42,15 @@ public interface ExpertEvaluatorAgent {
      * </p>
      *
      * @param context 完整的面试上下文（包含所有对话记录、简历快照、JD要求等）
-     * @return 技能可信度列表（LangChain4j 会自动处理序列化）
+     * @return 技能可信度列表响应（LangChain4j 会自动处理序列化）
      */
-    List<SkillCredibility> generateCredibilityAnalysis(String context);
+    @SystemMessage(fromResource = "/prompts/system/interview/expert-evaluator.txt")
+    SkillCredibilityListResponse generateCredibilityAnalysis(
+        @UserMessage String context,
+        @V("context") String basicContext,
+        @V("resume_snapshot") String resumeSnapshot,
+        @V("jd_snapshot") String jdSnapshot
+    );
 
     /**
      * 计算总体可信度评分
@@ -47,5 +61,11 @@ public interface ExpertEvaluatorAgent {
      * @param context 完整的面试上下文
      * @return 总体可信度评分对象（LangChain4j 会自动处理序列化）
      */
-    CredibilityScoreResult calculateCredibilityScore(String context);
+    @SystemMessage(fromResource = "/prompts/system/interview/expert-evaluator.txt")
+    CredibilityScoreResult calculateCredibilityScore(
+        @UserMessage String context,
+        @V("context") String basicContext,
+        @V("resume_snapshot") String resumeSnapshot,
+        @V("jd_snapshot") String jdSnapshot
+    );
 }

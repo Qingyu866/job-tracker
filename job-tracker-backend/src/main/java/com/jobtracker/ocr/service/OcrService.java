@@ -3,11 +3,11 @@ package com.jobtracker.ocr.service;
 import com.jobtracker.ocr.ZhipuOcrClient;
 import com.jobtracker.ocr.dto.OcrOptions;
 import com.jobtracker.ocr.dto.OcrResult;
-import com.jobtracker.ocr.dto.OcrResult.OcrStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.List;
  * OCR 核心识别服务
  *
  * @author Job Tracker Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2026-03-16
  */
 @Slf4j
@@ -28,12 +28,6 @@ public class OcrService {
 
     @Value("${ocr.enabled:true}")
     private boolean ocrEnabled;
-
-    @Value("${ocr.default-provider:ZHIPU}")
-    private String defaultProvider;
-
-    @Value("${ocr.fallback.enable-local-model:true}")
-    private boolean enableLocalFallback;
 
     @Value("${ocr.limits.max-image-size:10485760}")
     private int maxImageSize;
@@ -56,37 +50,17 @@ public class OcrService {
 
         // 2. 检查 OCR 是否启用
         if (!ocrEnabled) {
-            log.debug("OCR 功能已禁用，返回失败结果");
+            log.debug("OCR 功能已禁用");
             return OcrResult.failed("OCR_DISABLED", "OCR 功能未启用");
         }
 
-        // 3. 尝试智谱 OCR
-        if ("ZHIPU".equals(defaultProvider)) {
-            if (zhipuOcrClient.isConfigured()) {
-                OcrResult result = tryZhipuOcr(imageData, options);
-                if (result.isSuccess()) {
-                    return result;
-                }
-                // 智谱 OCR 失败，尝试降级
-                if (enableLocalFallback) {
-                    log.info("智谱 OCR 失败，尝试使用本地模型降级");
-                    return fallbackToLocal(result.getErrorMessage());
-                }
-                return result;
-            } else {
-                log.warn("智谱 OCR 未配置，使用本地模型");
-                return fallbackToLocal("智谱 OCR 未配置");
-            }
+        // 3. 检查配置
+        if (!zhipuOcrClient.isConfigured()) {
+            log.error("智谱 OCR 未配置，请检查 API Key");
+            return OcrResult.failed("NOT_CONFIGURED", "智谱 OCR 未配置，请检查 API Key");
         }
 
-        // 4. 直接使用本地模型
-        return fallbackToLocal("配置为使用本地模型");
-    }
-
-    /**
-     * 尝试使用智谱 OCR
-     */
-    private OcrResult tryZhipuOcr(byte[] imageData, OcrOptions options) {
+        // 4. 调用智谱 OCR
         try {
             return zhipuOcrClient.recognize(imageData, options);
         } catch (Exception e) {
@@ -96,18 +70,47 @@ public class OcrService {
     }
 
     /**
-     * 降级到本地模型
+     * 识别文件（支持PDF、DOCX、图片等）
+     * <p>
+     * 推荐使用此方法，直接传递 MultipartFile，避免格式检查问题
+     * </p>
      *
-     * 注意：当前实现返回占位结果
-     * 实际使用时需要集成 MultimodalJobAgent
+     * @param file    上传的文件
+     * @param options 识别选项
+     * @return 识别结果
      */
-    private OcrResult fallbackToLocal(String reason) {
-        log.info("使用本地模型降级，原因: {}", reason);
+    public OcrResult recognize(MultipartFile file, OcrOptions options) {
+        // 1. 验证输入
+        if (file == null || file.isEmpty()) {
+            log.warn("文件为空");
+            return OcrResult.failed("INVALID_INPUT", "文件不能为空");
+        }
 
-        // TODO: 实际集成时需要调用 MultimodalJobAgent
-        // 当前返回占位结果
-        return OcrResult.failed("FALLBACK_NOT_IMPLEMENTED",
-                "本地模型降级暂未实现，原因: " + reason);
+        // 2. 检查文件大小
+        if (file.getSize() > maxImageSize) {
+            log.warn("文件超过最大大小限制: {} > {}", file.getSize(), maxImageSize);
+            return OcrResult.failed("FILE_TOO_LARGE", "文件大小超过限制");
+        }
+
+        // 3. 检查 OCR 是否启用
+        if (!ocrEnabled) {
+            log.debug("OCR 功能已禁用");
+            return OcrResult.failed("OCR_DISABLED", "OCR 功能未启用");
+        }
+
+        // 4. 检查配置
+        if (!zhipuOcrClient.isConfigured()) {
+            log.error("智谱 OCR 未配置，请检查 API Key");
+            return OcrResult.failed("NOT_CONFIGURED", "智谱 OCR 未配置，请检查 API Key");
+        }
+
+        // 5. 直接调用智谱文档解析（支持多种格式）
+        try {
+            return zhipuOcrClient.recognize(file, options);
+        } catch (Exception e) {
+            log.error("智谱文档解析调用异常: {}", e.getMessage(), e);
+            return OcrResult.failed("ZHIPU_ERROR", "文档解析失败: " + e.getMessage());
+        }
     }
 
     /**

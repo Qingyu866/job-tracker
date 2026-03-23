@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { UserResume, CreateResumeRequest, UpdateResumeRequest } from '@/types/resume';
+import type { UserResume, CreateResumeRequest, UpdateResumeRequest, CreateCompleteResumeRequest } from '@/types/resume';
 import type { ResumeSkill } from '@/types/interview';
 
 const TOKEN_KEY = 'authorization';
@@ -47,34 +47,37 @@ export const resumeApi = {
     return response.data.data;
   },
 
-  async createComplete(data: {
-    resume: CreateResumeRequest;
-    skills: Array<{
-      skillId: number;
-      proficiencyLevel: string;
-    }>;
-    projects: Array<{
-      projectName: string;
-      role: string;
-      description: string;
-      techStack: string;
-      startDate: string;
-      endDate: string;
-    }>;
-    workExperiences: Array<{
-      company: string;
-      position: string;
-      startDate: string;
-      endDate: string;
-      description: string;
-    }>;
-  }): Promise<{
+  async createComplete(data: CreateCompleteResumeRequest): Promise<{
     resume: UserResume;
     skills: any[];
     projects: any[];
     workExperiences: any[];
   }> {
-    const response = await resumeClient.post<ApiResponse<any>>('/resumes/complete', data);
+    // 转换数据格式以匹配后端要求
+    const formattedData = {
+      resume: data.resume,
+      skills: data.skills.map(skill => ({
+        skillId: skill.skillId,
+        proficiencyLevel: skill.proficiencyLevel
+      })),
+      projects: data.projects.map(project => ({
+        projectName: project.projectName,
+        role: project.role,
+        description: project.description,
+        techStack: project.techStack,
+        startDate: project.startDate,
+        endDate: project.endDate
+      })),
+      workExperiences: data.workExperiences.map(experience => ({
+        company: experience.companyName,
+        position: experience.position,
+        startDate: experience.startDate,
+        endDate: experience.endDate,
+        description: experience.description
+      }))
+    };
+    
+    const response = await resumeClient.post<ApiResponse<any>>('/resumes/complete', formattedData);
     return response.data.data;
   },
 
@@ -110,13 +113,8 @@ export const resumeApi = {
     return response.data.data;
   },
 
-  async getCompleteResume(resumeId: number): Promise<{
-    resume: UserResume;
-    skills: any[];
-    projects: any[];
-    workExperiences: any[];
-  }> {
-    const response = await resumeClient.get<ApiResponse<any>>(`/resumes/${resumeId}/complete`);
+  async getCompleteResume(resumeId: number): Promise<UserResume> {
+    const response = await resumeClient.get<ApiResponse<UserResume>>(`/resumes/${resumeId}/complete`);
     return response.data.data;
   },
 };

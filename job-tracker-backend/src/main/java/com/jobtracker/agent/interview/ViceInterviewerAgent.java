@@ -2,9 +2,11 @@ package com.jobtracker.agent.interview;
 
 import com.jobtracker.agent.interview.dto.NextStepDecision;
 import com.jobtracker.agent.interview.dto.ImprovementSuggestion;
-import com.jobtracker.dto.QuestionPlanDTO;
-
-import java.util.List;
+import com.jobtracker.agent.interview.dto.QuestionPlanListResponse;
+import com.jobtracker.agent.interview.dto.ImprovementSuggestionListResponse;
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 副面试官 Agent
@@ -20,16 +22,24 @@ import java.util.List;
 public interface ViceInterviewerAgent {
 
     /**
-     * 生成完整的考察计划（25轮）
+     * 生成完整的考察计划
      * <p>
      * 在创建会话时调用，生成所有轮次的考察计划
-     * LangChain4j 会自动将 AI 返回的 JSON 解析为 List&lt;QuestionPlanDTO&gt;
+     * LangChain4j 会自动将 AI 返回的 JSON 解析为 QuestionPlanListResponse
      * </p>
      *
      * @param context 上下文信息（包含 JD 和简历数据）
-     * @return 考察计划列表
+     * @param totalRounds 面试总轮数（从配置读取）
+     * @return 考察计划列表响应
      */
-    List<QuestionPlanDTO> generateQuestionPlan(String context);
+    @SystemMessage(fromResource = "/prompts/system/interview/vice-interviewer.txt")
+    QuestionPlanListResponse generateQuestionPlan(
+        @UserMessage String context,
+        @V("context") String basicContext,
+        @V("resume_snapshot") String resumeSnapshot,
+        @V("jd_snapshot") String jdSnapshot,
+        @V("total_rounds") Integer totalRounds
+    );
 
     /**
      * 决定下一个步骤
@@ -37,7 +47,13 @@ public interface ViceInterviewerAgent {
      * @param context 上下文信息（包含 JD、简历、已考察知识点、用户最新回答等）
      * @return 下一步决策对象（LangChain4j 会自动处理序列化）
      */
-    NextStepDecision decideNextStep(String context);
+    @SystemMessage(fromResource = "/prompts/system/interview/vice-interviewer.txt")
+    NextStepDecision decideNextStep(
+        @UserMessage String context,
+        @V("context") String basicContext,
+        @V("resume_snapshot") String resumeSnapshot,
+        @V("jd_snapshot") String jdSnapshot
+    );
 
     /**
      * 生成改进建议
@@ -47,7 +63,13 @@ public interface ViceInterviewerAgent {
      * </p>
      *
      * @param context 完整的面试上下文（包含所有对话记录、评分结果等）
-     * @return 改进建议列表（LangChain4j 会自动处理序列化）
+     * @return 改进建议列表响应（LangChain4j 会自动处理序列化）
      */
-    List<ImprovementSuggestion> generateSuggestions(String context);
+    @SystemMessage(fromResource = "/prompts/system/interview/vice-interviewer.txt")
+    ImprovementSuggestionListResponse generateSuggestions(
+        @UserMessage String context,
+        @V("context") String basicContext,
+        @V("resume_snapshot") String resumeSnapshot,
+        @V("jd_snapshot") String jdSnapshot
+    );
 }

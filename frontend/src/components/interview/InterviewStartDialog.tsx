@@ -208,7 +208,7 @@ function ResumeCard({ resume, selected, onSelect }: ResumeCardProps) {
             <div className="mt-2 flex flex-wrap gap-1">
               {resume.skills.slice(0, 5).map((skill, index) => (
                 <Badge key={index} variant="outline" size="sm">
-                  {skill.name}
+                  技能 #{skill.skillId}
                 </Badge>
               ))}
               {resume.skills.length > 5 && (

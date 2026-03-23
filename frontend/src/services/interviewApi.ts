@@ -4,10 +4,10 @@ import type {
   InterviewMessage,
   MockInterviewEvaluation,
   InterviewReport,
-  UserResume,
   ResumeProject,
   ResumeSkill,
 } from '@/types/interview';
+import type { UserResume } from '@/types/resume';
 
 interface BackendInterviewMessage {
   messageId: number | string;
@@ -89,6 +89,39 @@ function transformSession(session: BackendMockInterviewSession, companyName?: st
   };
 }
 
+interface BackendMockInterviewEvaluation {
+  evaluationId: number;
+  sessionId: string;
+  roundNumber: number;
+  skillName: string;
+  questionText?: string;
+  userAnswer?: string;
+  technicalScore: number;
+  logicScore: number;
+  depthScore: number;
+  totalScore: number;
+  feedback: string;
+  suggestion?: string;
+  evaluatedAt: string;
+}
+
+function transformEvaluation(evaluation: BackendMockInterviewEvaluation): MockInterviewEvaluation {
+  return {
+    id: evaluation.evaluationId,
+    sessionId: evaluation.sessionId,
+    roundNumber: evaluation.roundNumber,
+    skillName: evaluation.skillName,
+    questionText: evaluation.questionText,
+    userAnswer: evaluation.userAnswer,
+    technicalScore: evaluation.technicalScore,
+    logicScore: evaluation.logicScore,
+    depthScore: evaluation.depthScore,
+    comment: evaluation.feedback,
+    improvement: evaluation.suggestion,
+    createdAt: evaluation.evaluatedAt,
+  };
+}
+
 export const interviewApi = {
   async startInterview(applicationId: number): Promise<MockInterviewSession> {
     const response = await apiClient.post<BackendMockInterviewSession>('/mock-interview/start', {
@@ -152,10 +185,10 @@ export const interviewApi = {
   },
 
   async getEvaluations(sessionId: string): Promise<MockInterviewEvaluation[]> {
-    const response = await apiClient.get<MockInterviewEvaluation[]>(
+    const response = await apiClient.get<BackendMockInterviewEvaluation[]>(
       `/mock-interview/sessions/${sessionId}/evaluations`
     );
-    return response.data;
+    return response.data.map(transformEvaluation);
   },
 
   async getReport(sessionId: string, session: MockInterviewSession, evaluations: MockInterviewEvaluation[]): Promise<InterviewReport> {

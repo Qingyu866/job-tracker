@@ -30,7 +30,6 @@ export function InterviewPage() {
     persistActiveSession,
   } = useInterviewStore();
 
-  const [showStartDialog, setShowStartDialog] = useState(false);
   const [starting, setStarting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,19 +43,6 @@ export function InterviewPage() {
   const applicationId = locationState?.applicationId || session?.applicationId;
   const companyName = locationState?.companyName || session?.companyName;
   const jobTitle = locationState?.jobTitle || session?.jobTitle;
-
-  console.log('InterviewPage render:', { 
-    sessionId, 
-    applicationId, 
-    companyName, 
-    jobTitle,
-    showStartDialog,
-    activeSessionId,
-    currentSessionId,
-    sessions,
-    loading,
-    session
-  });
 
   useEffect(() => {
     if (sessionId && sessionId !== 'new') {
@@ -122,7 +108,6 @@ export function InterviewPage() {
               
               try {
                 const newSessionId = await startInterview(applicationId!);
-                setShowStartDialog(false);
                 navigate(`/interview/${newSessionId}`, { replace: true });
               } catch (err) {
                 setError('开始面试失败，请重试');
